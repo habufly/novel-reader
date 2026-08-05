@@ -1,0 +1,44 @@
+appId: com.habufly.novelreader
+productName: Novel Reader
+copyright: Copyright © 2026 habufly
+
+directories:
+  buildResources: build
+  output: dist
+
+# electron-builder 預設是「全部收進去，再依下列規則排除」
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!build/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!tsconfig.json'
+  - '!electron-builder.yml'
+  - '!{PLAN.md,README.md,CHANGELOG.md,.editorconfig,.gitignore}'
+  - '!{.env,.env.*,.npmrc,package-lock.json,pnpm-lock.yaml,yarn.lock}'
+
+asarUnpack:
+  - resources/**
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: portable
+      arch: [x64]
+  artifactName: ${productName}-${version}-Setup.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Novel Reader
+  deleteAppDataOnUninstall: false
+
+portable:
+  artifactName: ${productName}-${version}-Portable.${ext}
+
+# 不上傳、不自動發佈；Phase 6 才接 GitHub Releases
+publish: null

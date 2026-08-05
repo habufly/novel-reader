@@ -1,0 +1,38 @@
+{
+  "name": "novel-reader",
+  "version": "0.1.0",
+  "description": "Windows 桌面小說閱讀器：自動書籤、章節目錄、夜間模式、字型調節、語音聽書",
+  "main": "./out/main/index.js",
+  "author": "habufly",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "icon": "node scripts/make-icon.mjs build/icon.ico",
+    "selftest": "electron-vite build && electron out/main/index.js --self-test",
+    "build:win": "npm run typecheck && npm run build && electron-builder --win",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "iconv-lite": "0.7.3",
+    "jschardet": "3.1.4"
+  },
+  "devDependencies": {
+    "@tanstack/react-virtual": "3.14.9",
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "5.2.0",
+    "electron": "43.3.0",
+    "electron-builder": "26.15.3",
+    "electron-vite": "5.0.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "7.0.2",
+    "vite": "7.3.6",
+    "zustand": "5.0.14"
+  }
+}

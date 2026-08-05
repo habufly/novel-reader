@@ -1,0 +1,66 @@
+/*
+ * 四套主題，全部以 CSS 變數表達，切換主題只是換 <html data-theme>。
+ * night 同時掛在 :root 上當作預設值 —— 需求 3：不設定就是夜間模式。
+ * --bg 必須與 main/index.ts 的 NIGHT_BG 一致，否則啟動瞬間會露白邊。
+ */
+
+:root,
+:root[data-theme='night'] {
+  --bg: #16161a;
+  --bg-elevated: #1e1e24;
+  --bg-hover: #26262e;
+  --border: #2f2f3a;
+  --text: #d7d3cc;
+  --text-dim: #8a8a97;
+  --text-strong: #ece8e1;
+  --accent: #c9a227;
+  --accent-soft: rgba(201, 162, 39, 0.16);
+  --selection: rgba(201, 162, 39, 0.24);
+  --shadow: rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+:root[data-theme='black'] {
+  --bg: #000000;
+  --bg-elevated: #0c0c0e;
+  --bg-hover: #17171b;
+  --border: #24242c;
+  --text: #c4c1bb;
+  --text-dim: #77767f;
+  --text-strong: #e6e3dd;
+  --accent: #b8952a;
+  --accent-soft: rgba(184, 149, 42, 0.16);
+  --selection: rgba(184, 149, 42, 0.24);
+  --shadow: rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
+}
+
+:root[data-theme='sepia'] {
+  --bg: #f2e8d5;
+  --bg-elevated: #e9dcc3;
+  --bg-hover: #e0d0b2;
+  --border: #d6c3a1;
+  --text: #4a3f31;
+  --text-dim: #8a7963;
+  --text-strong: #2f271d;
+  --accent: #9a6b30;
+  --accent-soft: rgba(154, 107, 48, 0.14);
+  --selection: rgba(154, 107, 48, 0.2);
+  --shadow: rgba(90, 70, 40, 0.18);
+  color-scheme: light;
+}
+
+:root[data-theme='day'] {
+  --bg: #ffffff;
+  --bg-elevated: #f5f5f7;
+  --bg-hover: #ebebef;
+  --border: #dcdce2;
+  --text: #2c2c34;
+  --text-dim: #74747f;
+  --text-strong: #14141a;
+  --accent: #8a6d1f;
+  --accent-soft: rgba(138, 109, 31, 0.12);
+  --selection: rgba(138, 109, 31, 0.18);
+  --shadow: rgba(0, 0, 0, 0.12);
+  color-scheme: light;
+}

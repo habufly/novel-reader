@@ -1,0 +1,16 @@
+node_modules/
+out/
+dist/
+.vite/
+
+# 測試用的小說原始檔：體積大且有版權，不入版控
+docs/*.txt
+
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+
+.DS_Store
+Thumbs.db
