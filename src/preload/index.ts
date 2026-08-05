@@ -7,6 +7,7 @@ import type {
   FilePreview,
   ImportProgress,
   ImportResult,
+  ReaderPreset,
   ReaderSettings
 } from '@shared/types'
 
@@ -54,7 +55,11 @@ const api = {
   settings: {
     get: (): Promise<ReaderSettings> => ipcRenderer.invoke('settings:get'),
     set: (patch: Partial<ReaderSettings>): Promise<ReaderSettings> =>
-      ipcRenderer.invoke('settings:set', patch)
+      ipcRenderer.invoke('settings:set', patch),
+    listPresets: (): Promise<ReaderPreset[]> => ipcRenderer.invoke('presets:list'),
+    savePreset: (name: string, settings: ReaderSettings): Promise<ReaderPreset[]> =>
+      ipcRenderer.invoke('presets:save', name, settings),
+    removePreset: (id: string): Promise<ReaderPreset[]> => ipcRenderer.invoke('presets:remove', id)
   },
 
   window: {

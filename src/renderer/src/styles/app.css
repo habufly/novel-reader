@@ -606,7 +606,7 @@ body {
   max-width: var(--reader-width);
   margin: 0 auto;
   /* 尾端留半個視窗高度，讓最後一段也能捲到舒服的閱讀位置 */
-  padding: 8px 32px 55vh;
+  padding: 8px var(--reader-pad) 55vh;
 }
 
 /* 章節的上方留白放在 section 的 padding 而不是標題的 margin。
@@ -630,6 +630,7 @@ body {
   font-family: var(--reader-font);
   font-size: var(--reader-size);
   line-height: var(--reader-leading);
+  letter-spacing: var(--reader-tracking);
   text-indent: var(--reader-indent);
   color: var(--text);
   /* 內文要能選取複製 */
@@ -934,4 +935,286 @@ body {
   font-size: 11px;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ 設定面板 */
+
+/* 不遮蔽也不攔截：面板開著時仍要能捲動內文看即時效果 */
+.set-backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.set {
+  pointer-events: auto;
+  width: var(--set-width);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: -14px 0 40px var(--shadow);
+}
+
+.set__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.set__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.set__close {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.set__close:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.set__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 16px 16px;
+}
+
+.set__section {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.set__section:last-child {
+  border-bottom: none;
+}
+
+.set__heading {
+  margin: 0 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+}
+
+.set__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.set__label {
+  width: 4.5em;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.set__value {
+  width: 4.2em;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.set__slider {
+  flex: 1;
+  min-width: 0;
+  height: 3px;
+  appearance: none;
+  border-radius: 2px;
+  background: var(--border);
+  cursor: pointer;
+}
+
+.set__slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.set__select,
+.set__input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.set__select:focus,
+.set__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.set__note {
+  margin: 4px 0 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.set__note--warn {
+  color: #d98a4a;
+}
+
+.set__foot {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+/* ---------------------------------------------------------- 主題色塊 */
+
+.set__themes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 12px 4px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+
+.swatch:hover {
+  border-color: var(--text-dim);
+}
+
+.swatch.is-active {
+  border-color: var(--accent);
+}
+
+.swatch__label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.swatch__hint {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+/* -------------------------------------------------------- 預設組合 */
+
+.presets {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.presets__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.presets__apply {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.presets__apply:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.presets__remove {
+  width: 26px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.presets__remove:hover {
+  color: #e06c6c;
+  background: var(--bg-hover);
+}
+
+/* 面板開啟時內容區讓出等寬空間，內文才不會被蓋住 */
+:root {
+  --set-width: min(380px, 42vw);
+}
+
+:root[data-settings='open'] .reader__main,
+:root[data-settings='open'] .library {
+  margin-right: var(--set-width);
+}
+
+/* 面板讓位後狀態列變窄，禁止換行並讓提示文字優先讓步 */
+.statusbar {
+  white-space: nowrap;
+}
+
+.statusbar > .btn,
+.statusbar__progress {
+  flex-shrink: 0;
+}
+
+.statusbar__hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:root[data-settings='open'] .statusbar__hint {
+  display: none;
 }

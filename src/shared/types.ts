@@ -141,15 +141,20 @@ export interface BookProgress {
 
 export interface ReaderSettings {
   theme: ThemeName
+  /** CSS font-family 值；空字串代表沿用系統預設 */
   fontFamily: string
   fontSize: number
   lineHeight: number
+  /** 字距，單位 em。中文適度加寬會好讀，但過大會破壞詞的視覺結塊 */
+  letterSpacing: number
   /** 單行最大寬度，單位 em。中文一行 30–40 字最好讀 */
   maxWidth: number
   /** 段落間距，單位 em */
   paragraphSpacing: number
   /** 首行縮排字數，中文習慣 2 */
   indent: number
+  /** 內文區左右邊距，單位 px */
+  pagePadding: number
 }
 
 export const DEFAULT_SETTINGS: ReaderSettings = {
@@ -157,7 +162,24 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   fontFamily: '',
   fontSize: 18,
   lineHeight: 1.9,
+  letterSpacing: 0,
   maxWidth: 36,
   paragraphSpacing: 0.9,
-  indent: 2
+  indent: 2,
+  pagePadding: 32
+}
+
+export interface ReaderPreset {
+  id: string
+  name: string
+  settings: ReaderSettings
+}
+
+export interface FontOption {
+  /** 顯示用名稱 */
+  label: string
+  /** 實際寫進 CSS font-family 的值 */
+  value: string
+  /** 是否來自系統字型列舉（而非內建清單） */
+  fromSystem: boolean
 }

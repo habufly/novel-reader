@@ -52,6 +52,22 @@ function applyContentSecurityPolicy(): void {
   })
 }
 
+/**
+ * 只有列舉本機字型（需求 4 的字體選單）需要授權，其餘一律拒絕。
+ * 這個 app 不用相機、麥克風、定位、通知，預設全關才是對的。
+ */
+const ALLOWED_PERMISSIONS = new Set<string>(['local-fonts'])
+
+function applyPermissionPolicy(): void {
+  const ses = session.defaultSession
+  ses.setPermissionRequestHandler((_wc, permission, callback) => {
+    const allowed = ALLOWED_PERMISSIONS.has(permission)
+    if (!allowed) console.warn(`[permission] 已拒絕: ${permission}`)
+    callback(allowed)
+  })
+  ses.setPermissionCheckHandler((_wc, permission) => ALLOWED_PERMISSIONS.has(permission))
+}
+
 function createWindow(): BrowserWindow {
   const state = loadWindowState()
 
@@ -109,6 +125,7 @@ void app.whenReady().then(async () => {
   nativeTheme.themeSource = 'dark'
 
   applyContentSecurityPolicy()
+  applyPermissionPolicy()
   registerAppIpc()
   registerLibraryIpc()
   registerSettingsIpc()

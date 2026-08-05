@@ -5,6 +5,7 @@ import ImportDialog from '../components/ImportDialog'
 
 interface Props {
   onOpenBook: (book: Book) => void
+  onOpenSettings: () => void
 }
 
 function formatChars(n: number): string {
@@ -20,7 +21,7 @@ function formatDate(iso: string): string {
   })
 }
 
-export default function Library({ onOpenBook }: Props): React.JSX.Element {
+export default function Library({ onOpenBook, onOpenSettings }: Props): React.JSX.Element {
   const { books, loading, error, refresh, remove } = useLibrary()
   const [pending, setPending] = useState<string[] | null>(null)
   const [lastImport, setLastImport] = useState<ImportResult[] | null>(null)
@@ -40,6 +41,9 @@ export default function Library({ onOpenBook }: Props): React.JSX.Element {
         <h2 className="library__heading">書櫃</h2>
         <span className="library__count">{books.length} 本</span>
         <div className="library__spacer" />
+        <button className="btn" onClick={onOpenSettings} title="Ctrl+,">
+          設定
+        </button>
         <button className="btn btn--primary" onClick={() => void pick()}>
           匯入小說
         </button>

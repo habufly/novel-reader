@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
-import type { ReaderSettings } from '@shared/types'
+import type { ReaderPreset, ReaderSettings } from '@shared/types'
 import { loadSettings, saveSettings } from '../storage/settings'
+import { listPresets, removePreset, savePreset } from '../storage/presets'
 
 /** 淺色主題時也要讓原生元件（捲軸、右鍵選單）跟著換，否則只有內容區變亮 */
 function syncNativeTheme(theme: ReaderSettings['theme']): void {
@@ -19,6 +20,15 @@ export function registerSettingsIpc(): void {
     if (patch.theme) syncNativeTheme(next.theme)
     return next
   })
+
+  ipcMain.handle('presets:list', (): ReaderPreset[] => listPresets())
+
+  ipcMain.handle(
+    'presets:save',
+    (_e, name: string, settings: ReaderSettings): ReaderPreset[] => savePreset(name, settings)
+  )
+
+  ipcMain.handle('presets:remove', (_e, id: string): ReaderPreset[] => removePreset(id))
 
   ipcMain.handle('window:toggleFullscreen', (e): boolean => {
     const win = BrowserWindow.fromWebContents(e.sender)

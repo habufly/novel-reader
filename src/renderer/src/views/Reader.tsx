@@ -9,6 +9,7 @@ import BookmarkList from '../components/BookmarkList'
 interface Props {
   book: Book
   onBack: () => void
+  onOpenSettings: () => void
 }
 
 /** 定期存檔間隔。使用者盯著同一頁不動時的保險，其餘時機都是事件觸發 */
@@ -19,7 +20,7 @@ const IDLE_SAVE_MS = 500
 
 type Tab = 'toc' | 'marks'
 
-export default function Reader({ book, onBack }: Props): React.JSX.Element {
+export default function Reader({ book, onBack, onOpenSettings }: Props): React.JSX.Element {
   // 逐項訂閱，不要整包取出 —— 捲動時 current 每換一段就更新一次，
   // 訂閱整個 store 會讓整棵樹（含虛擬目錄）跟著重繪
   const open = useReader((s) => s.open)
@@ -249,10 +250,13 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
           <button className="btn btn--ghost" onClick={() => setTocOpen((v) => !v)} title="Ctrl+T">
             {tocOpen ? '隱藏目錄' : '顯示目錄'}
           </button>
+          <button className="btn btn--ghost" onClick={onOpenSettings} title="Ctrl+,">
+            設定
+          </button>
           <span className="statusbar__title">{chapters[current.chapterId]?.title ?? ''}</span>
           <div className="statusbar__spacer" />
           <span className="statusbar__hint">
-            ← → 換章 · Ctrl+D 書籤 · Alt+← 返回 · Ctrl± 字級 {fontSize}px · F11 全螢幕
+            ← → 換章 · Ctrl+D 書籤 · Alt+← 返回 · Ctrl± {fontSize}px · Ctrl+, 設定 · F11 全螢幕
           </span>
           <span className="statusbar__progress">
             {current.chapterId + 1}/{chapters.length} · {percent.toFixed(1)}%
