@@ -101,7 +101,20 @@ export default function Library({ onOpenBook }: Props): React.JSX.Element {
                 <span className="book__meta">
                   {book.chapterCount} 章 · {formatChars(book.charCount)}
                 </span>
-                <span className="book__date">加入於 {formatDate(book.addedAt)}</span>
+                <span className="book__date">
+                  {book.lastReadAt ? `上次閱讀 ${formatDate(book.lastReadAt)}` : `加入於 ${formatDate(book.addedAt)}`}
+                </span>
+                {book.progressPercent !== undefined && book.progressPercent > 0 && (
+                  <span className="book__progress">
+                    <span className="book__progressBar">
+                      <span
+                        className="book__progressFill"
+                        style={{ width: `${book.progressPercent}%` }}
+                      />
+                    </span>
+                    <span className="book__progressText">{book.progressPercent.toFixed(1)}%</span>
+                  </span>
+                )}
               </button>
               <div className="book__actions">
                 <button

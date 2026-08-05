@@ -4,11 +4,20 @@ import { useReader } from '../stores/useReader'
 import { useSettings } from '../stores/useSettings'
 import ChapterFlow, { type ChapterFlowHandle } from '../components/ChapterFlow'
 import TocSidebar from '../components/TocSidebar'
+import BookmarkList from '../components/BookmarkList'
 
 interface Props {
   book: Book
   onBack: () => void
 }
+
+/** 定期存檔間隔。使用者盯著同一頁不動時的保險，其餘時機都是事件觸發 */
+const AUTOSAVE_MS = 30_000
+
+/** 捲動停止多久之後寫入。太短會頻繁寫檔，太長則關窗時可能少記一段 */
+const IDLE_SAVE_MS = 500
+
+type Tab = 'toc' | 'marks'
 
 export default function Reader({ book, onBack }: Props): React.JSX.Element {
   // 逐項訂閱，不要整包取出 —— 捲動時 current 每換一段就更新一次，
@@ -16,13 +25,22 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
   const open = useReader((s) => s.open)
   const close = useReader((s) => s.close)
   const jumpTo = useReader((s) => s.jumpTo)
+  const goBack = useReader((s) => s.goBack)
+  const persist = useReader((s) => s.persist)
+  const addBookmark = useReader((s) => s.addBookmark)
+  const removeBookmark = useReader((s) => s.removeBookmark)
   const chapters = useReader((s) => s.chapters)
   const current = useReader((s) => s.current)
   const loading = useReader((s) => s.loading)
+  const readChapters = useReader((s) => s.readChapters)
+  const bookmarks = useReader((s) => s.bookmarks)
+  const hasHistory = useReader((s) => s.history.length > 0)
   const fontSize = useSettings((s) => s.fontSize)
   const bumpFontSize = useSettings((s) => s.bumpFontSize)
 
   const [tocOpen, setTocOpen] = useState(true)
+  const [tab, setTab] = useState<Tab>('toc')
+  const [toast, setToast] = useState<string | null>(null)
   const flowRef = useRef<ChapterFlowHandle | null>(null)
 
   useEffect(() => {
@@ -33,6 +51,35 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
   const onFlowReady = useCallback((h: ChapterFlowHandle) => {
     flowRef.current = h
   }, [])
+
+  const flash = useCallback((msg: string) => {
+    setToast(msg)
+    window.setTimeout(() => setToast(null), 1800)
+  }, [])
+
+  // --- 需求 1：自動書籤的五個寫入時機 ---
+
+  // 1) 捲動停止 500ms，2) 換章（current 變動同時涵蓋這兩種）
+  useEffect(() => {
+    const t = window.setTimeout(() => persist(), IDLE_SAVE_MS)
+    return () => window.clearTimeout(t)
+  }, [current, persist])
+
+  // 3) 視窗失焦，4) 每 30 秒，5) 關閉前
+  useEffect(() => {
+    const onBlur = (): void => persist()
+    const onUnload = (): void => persist({ flush: true, force: true })
+    const timer = window.setInterval(() => persist(), AUTOSAVE_MS)
+
+    window.addEventListener('blur', onBlur)
+    window.addEventListener('beforeunload', onUnload)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('blur', onBlur)
+      window.removeEventListener('beforeunload', onUnload)
+      persist({ force: true })
+    }
+  }, [persist])
 
   /** 每章起點的累計字數，用來換算整本進度 */
   const cumulative = useMemo(() => {
@@ -53,11 +100,18 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      // 焦點在輸入框時不攔截
+      // 焦點在輸入框時不攔截，否則打不了搜尋關鍵字
       const tag = (e.target as HTMLElement | null)?.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
       const flow = flowRef.current
+
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault()
+        void goBack()
+        return
+      }
+
       if (e.ctrlKey) {
         switch (e.key) {
           case '=':
@@ -73,6 +127,11 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
           case 'T':
             e.preventDefault()
             setTocOpen((v) => !v)
+            return
+          case 'd':
+          case 'D':
+            e.preventDefault()
+            void addBookmark().then(() => flash('已加入書籤'))
             return
           default:
             return
@@ -124,7 +183,7 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [bumpFontSize, jumpTo, current.chapterId, onBack])
+  }, [bumpFontSize, jumpTo, goBack, addBookmark, flash, current.chapterId, onBack])
 
   return (
     <div className={`reader ${tocOpen ? '' : 'reader--noToc'}`}>
@@ -134,13 +193,46 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
             <button className="btn btn--ghost" onClick={onBack}>
               ← 書櫃
             </button>
-            <span className="reader__sideCount">{chapters.length} 章</span>
+            <button
+              className="btn btn--ghost"
+              onClick={() => void goBack()}
+              disabled={!hasHistory}
+              title="Alt+←　回到跳轉前的位置"
+            >
+              ↩ 返回
+            </button>
           </div>
-          <TocSidebar
-            chapters={chapters}
-            currentId={current.chapterId}
-            onJump={(id) => void jumpTo(id)}
-          />
+
+          <div className="reader__tabs">
+            <button
+              className={`reader__tab ${tab === 'toc' ? 'is-active' : ''}`}
+              onClick={() => setTab('toc')}
+            >
+              目錄 {chapters.length}
+            </button>
+            <button
+              className={`reader__tab ${tab === 'marks' ? 'is-active' : ''}`}
+              onClick={() => setTab('marks')}
+            >
+              書籤 {bookmarks.length}
+            </button>
+          </div>
+
+          {tab === 'toc' ? (
+            <TocSidebar
+              chapters={chapters}
+              currentId={current.chapterId}
+              readChapters={readChapters}
+              onJump={(id) => void jumpTo(id)}
+            />
+          ) : (
+            <BookmarkList
+              bookmarks={bookmarks}
+              chapters={chapters}
+              onJump={(c, o) => void jumpTo(c, o)}
+              onRemove={(id) => void removeBookmark(id)}
+            />
+          )}
         </aside>
       )}
 
@@ -151,18 +243,16 @@ export default function Reader({ book, onBack }: Props): React.JSX.Element {
           <ChapterFlow onReady={onFlowReady} />
         )}
 
+        {toast && <div className="toast">{toast}</div>}
+
         <footer className="statusbar">
-          <button
-            className="btn btn--ghost"
-            onClick={() => setTocOpen((v) => !v)}
-            title="Ctrl+T"
-          >
+          <button className="btn btn--ghost" onClick={() => setTocOpen((v) => !v)} title="Ctrl+T">
             {tocOpen ? '隱藏目錄' : '顯示目錄'}
           </button>
           <span className="statusbar__title">{chapters[current.chapterId]?.title ?? ''}</span>
           <div className="statusbar__spacer" />
           <span className="statusbar__hint">
-            ← → 換章 · 空白鍵翻頁 · Ctrl± 字級 {fontSize}px · F11 全螢幕
+            ← → 換章 · Ctrl+D 書籤 · Alt+← 返回 · Ctrl± 字級 {fontSize}px · F11 全螢幕
           </span>
           <span className="statusbar__progress">
             {current.chapterId + 1}/{chapters.length} · {percent.toFixed(1)}%

@@ -86,8 +86,12 @@ export default function ChapterFlow({ onReady }: Props): React.JSX.Element {
         if (Number(p.dataset.offset) > pendingScroll.charOffset) break
         top = p.offsetTop
       }
+      // 存檔記的是基準線上的段落，還原就要讓它回到基準線的高度。
+      // 若直接對齊視窗頂端，重新量測會得到往後 25% 視窗高度的段落，
+      // 每關一次書就往前漂移一段，累積下來會跳過內容。
+      top -= scroller.clientHeight * READ_LINE_RATIO
     }
-    scroller.scrollTop = top
+    scroller.scrollTop = Math.max(0, top)
     clearPendingScroll()
   }, [pendingScroll, sections, clearPendingScroll])
 

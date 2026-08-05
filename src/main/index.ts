@@ -4,6 +4,7 @@ import { loadWindowState, trackWindowState } from './storage/windowState'
 import { registerAppIpc } from './ipc/appIpc'
 import { registerLibraryIpc } from './ipc/libraryIpc'
 import { registerSettingsIpc } from './ipc/settingsIpc'
+import { registerProgressIpc } from './ipc/progressIpc'
 
 /**
  * 明確指定應用程式名稱，userData 目錄才會固定。
@@ -111,6 +112,7 @@ void app.whenReady().then(async () => {
   registerAppIpc()
   registerLibraryIpc()
   registerSettingsIpc()
+  registerProgressIpc()
 
   const win = createWindow()
 

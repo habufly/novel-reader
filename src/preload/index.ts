@@ -3,6 +3,7 @@ import type {
   AppInfo,
   Book,
   BookIndex,
+  BookProgress,
   FilePreview,
   ImportProgress,
   ImportResult,
@@ -39,6 +40,15 @@ const api = {
     index: (id: string): Promise<BookIndex> => ipcRenderer.invoke('book:index', id),
     chapter: (id: string, chapterId: number): Promise<string> =>
       ipcRenderer.invoke('book:chapter', id, chapterId)
+  },
+
+  progress: {
+    get: (bookId: string): Promise<BookProgress> => ipcRenderer.invoke('progress:get', bookId),
+    save: (bookId: string, patch: Partial<BookProgress>): Promise<BookProgress> =>
+      ipcRenderer.invoke('progress:save', bookId, patch),
+    /** 關閉前的最後一次寫入，不等回應 */
+    flush: (bookId: string, patch: Partial<BookProgress>): void =>
+      ipcRenderer.send('progress:flush', bookId, patch)
   },
 
   settings: {

@@ -51,6 +51,8 @@ export interface Book {
   charCount: number
   addedAt: string
   lastReadAt?: string
+  /** 整本閱讀進度百分比，存進書櫃索引讓書卡不必逐本載入進度檔 */
+  progressPercent?: number
 }
 
 export interface ChapterMeta {
@@ -112,6 +114,29 @@ export interface ImportProgress {
 export interface ReadingPosition {
   chapterId: number
   charOffset: number
+}
+
+export interface Bookmark {
+  id: string
+  chapterId: number
+  charOffset: number
+  /** 加入書籤當下的內文片段，讓書籤清單不用載入整章就能顯示 */
+  excerpt: string
+  note: string
+  createdAt: string
+}
+
+export interface HistoryEntry extends ReadingPosition {
+  at: string
+}
+
+export interface BookProgress {
+  current: ReadingPosition & { updatedAt: string }
+  /** 跳轉前的位置，最新的在最前面 */
+  history: HistoryEntry[]
+  bookmarks: Bookmark[]
+  /** 已讀章節編號 */
+  readChapters: number[]
 }
 
 export interface ReaderSettings {
