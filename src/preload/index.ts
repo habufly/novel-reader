@@ -5,7 +5,8 @@ import type {
   BookIndex,
   FilePreview,
   ImportProgress,
-  ImportResult
+  ImportResult,
+  ReaderSettings
 } from '@shared/types'
 
 /**
@@ -38,6 +39,16 @@ const api = {
     index: (id: string): Promise<BookIndex> => ipcRenderer.invoke('book:index', id),
     chapter: (id: string, chapterId: number): Promise<string> =>
       ipcRenderer.invoke('book:chapter', id, chapterId)
+  },
+
+  settings: {
+    get: (): Promise<ReaderSettings> => ipcRenderer.invoke('settings:get'),
+    set: (patch: Partial<ReaderSettings>): Promise<ReaderSettings> =>
+      ipcRenderer.invoke('settings:set', patch)
+  },
+
+  window: {
+    toggleFullscreen: (): Promise<boolean> => ipcRenderer.invoke('window:toggleFullscreen')
   }
 }
 

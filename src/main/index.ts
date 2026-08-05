@@ -3,6 +3,17 @@ import { join } from 'node:path'
 import { loadWindowState, trackWindowState } from './storage/windowState'
 import { registerAppIpc } from './ipc/appIpc'
 import { registerLibraryIpc } from './ipc/libraryIpc'
+import { registerSettingsIpc } from './ipc/settingsIpc'
+
+/**
+ * 明確指定應用程式名稱，userData 目錄才會固定。
+ *
+ * 不設的話，直接以 `electron out/main/index.js` 啟動時 Electron 解析不到
+ * 套件目錄，app.getName() 會退回 "Electron"，資料就寫到 %APPDATA%\Electron，
+ * 與打包後的 %APPDATA%\novel-reader 分家 —— 等於開發與正式版各有一個書櫃。
+ * 必須在任何 getPath('userData') 之前呼叫。
+ */
+app.setName('novel-reader')
 
 /** 夜間模式的底色。視窗底色、CSS 變數 --bg 兩邊必須一致，否則啟動或縮放時會露出白邊。 */
 const NIGHT_BG = '#16161a'
@@ -99,6 +110,7 @@ void app.whenReady().then(async () => {
   applyContentSecurityPolicy()
   registerAppIpc()
   registerLibraryIpc()
+  registerSettingsIpc()
 
   const win = createWindow()
 

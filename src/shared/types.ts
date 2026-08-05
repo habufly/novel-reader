@@ -99,3 +99,40 @@ export interface ImportProgress {
   stage: 'reading' | 'decoding' | 'cleaning' | 'splitting' | 'writing' | 'done'
   percent: number
 }
+
+// ---------------------------------------------------------------- 閱讀
+
+/**
+ * 閱讀位置座標。
+ *
+ * 用「章節 + 章內字元位移」而不是捲動百分比：章節在匯入後就固定不再變動，
+ * 所以這組座標不受字級、視窗寬度、主題影響。改用百分比的話，
+ * 使用者一調字級位置就會跑掉，跟「字型可調」這個需求直接衝突。
+ */
+export interface ReadingPosition {
+  chapterId: number
+  charOffset: number
+}
+
+export interface ReaderSettings {
+  theme: ThemeName
+  fontFamily: string
+  fontSize: number
+  lineHeight: number
+  /** 單行最大寬度，單位 em。中文一行 30–40 字最好讀 */
+  maxWidth: number
+  /** 段落間距，單位 em */
+  paragraphSpacing: number
+  /** 首行縮排字數，中文習慣 2 */
+  indent: number
+}
+
+export const DEFAULT_SETTINGS: ReaderSettings = {
+  theme: 'night',
+  fontFamily: '',
+  fontSize: 18,
+  lineHeight: 1.9,
+  maxWidth: 36,
+  paragraphSpacing: 0.9,
+  indent: 2
+}
