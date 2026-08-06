@@ -74,6 +74,8 @@ npm run selftest -- "D:\novels\某本小說.txt"
 npm version patch && git push --follow-tags
 ```
 
+發佈設定為 `releaseType: release`（直接公開）。electron-builder 預設是草稿，而草稿對 electron-updater 不可見，會讓自動更新一直回報「還沒有發佈任何版本」。
+
 安裝版會在啟動 8 秒後靜靜檢查一次更新，有新版時於設定面板的「關於與更新」提示。**下載與安裝都需要使用者確認**，不會在閱讀中途強制重啟。免安裝版不支援自動更新。
 
 ## 專案結構

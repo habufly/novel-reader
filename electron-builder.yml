@@ -52,3 +52,6 @@ publish:
   provider: github
   owner: habufly
   repo: novel-reader
+  # 預設是 draft，而草稿對 electron-updater 是不可見的 ——
+  # 自動更新會一直回報「還沒有發佈任何版本」。直接發正式版。
+  releaseType: release
