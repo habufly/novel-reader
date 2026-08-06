@@ -1426,3 +1426,38 @@ body {
 .btn.is-on {
   color: var(--accent);
 }
+
+/* ------------------------------------------------------------ 關於與更新 */
+
+.about__row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.about__key {
+  width: 4.5em;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.about__value {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.about__value--path {
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  /* 路徑要能複製出來，方便回報問題 */
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.about__actions {
+  margin-top: 10px;
+  flex-wrap: wrap;
+}

@@ -169,6 +169,39 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   pagePadding: 32
 }
 
+// ---------------------------------------------------------------- 更新
+
+export type UpdateStage =
+  | 'idle'
+  | 'checking'
+  | 'available'
+  | 'downloading'
+  | 'ready'
+  | 'none'
+  | 'error'
+  | 'unsupported'
+
+export interface UpdateStatus {
+  stage: UpdateStage
+  /** 可更新到的版本 */
+  version?: string
+  /** 下載進度百分比 */
+  percent?: number
+  message?: string
+}
+
+export interface AppPreferences {
+  /** 開機時自動啟動 */
+  launchAtLogin: boolean
+  /** 啟動時自動檢查更新 */
+  autoCheckUpdates: boolean
+}
+
+export const DEFAULT_PREFERENCES: AppPreferences = {
+  launchAtLogin: false,
+  autoCheckUpdates: true
+}
+
 // ---------------------------------------------------------------- 語音
 
 export type TtsEngineId = 'local' | 'edge'

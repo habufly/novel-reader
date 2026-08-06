@@ -328,13 +328,35 @@ novel-reader/
 
 **驗收**：從第 100 章開始朗讀，能自動跨章連播 30 分鐘不中斷，高亮與語音同步，中途關窗後書籤停在唸到的位置。
 
-### Phase 6 — 打包與發佈（1 天）
+### Phase 6 — 打包與發佈（1 天）· 完成
 
-electron-builder 產 x64 的 NSIS 安裝檔與 portable exe。記住視窗大小位置、開機自啟（選用）、系統匣圖示。
+版本推進到 **1.0.0**。打包與視窗狀態記憶在 Phase 0 就完成，系統匣在 Phase 5 完成，這一階段補上自動更新與發佈流程。
 
-搭配 electron-updater + GitHub Releases 做自動更新（repo 已在 GitHub，直接可用）。
+**自動更新**（electron-updater + GitHub Releases，倉庫公開所以不需要權杖）
 
-**簽章問題**：未簽章的 exe 會觸發 SmartScreen 警告。選項是買 OV/EV 憑證（年費約 US$200–400）或接受警告——自用的話接受警告即可，這裡先不投入。
+刻意不做背景自動安裝——閱讀到一半被強制重啟很惱人。流程是：啟動 8 秒後靜靜檢查（避開開窗與書櫃載入）、有新版才提示、下載與安裝都要使用者按下按鈕，或等下次結束程式時自動套用。
+
+實作時踩到兩個坑：
+
+1. `electron-updater` 是 CJS 模組。打包成 CJS 後，動態 `import()` 的具名匯出會落在 `default` 底下（cjs-module-lexer 認不出 getter 形式的匯出），直接解構會拿到 `undefined`，一呼叫就炸 `Cannot set properties of undefined`。兩種形狀都要接住。
+2. 錯誤訊息要翻譯。尚未發佈任何版本時 electron-updater 回的是 `No published versions on GitHub`，直接丟給使用者看不懂。另外把連線失敗、缺 `app-update.yml`、404 都轉成中文說法。
+
+**發佈流程**：推送 `v` 開頭的標籤觸發 GitHub Actions，在 windows-latest 上型別檢查 → 編譯 → 打包 → 發佈到 Releases。
+
+**設定面板新增「關於與更新」**：版本、資料目錄、開機自啟、啟動時檢查更新、手動檢查按鈕，以及 SmartScreen 說明。
+
+**簽章**：安裝檔未簽章，首次執行會觸發 SmartScreen 警告，選「其他資訊 → 仍要執行」即可。要消除警告得買 OV/EV 憑證（年費約 US$200–400），自用不划算，先不投入。
+
+**驗收結果**
+
+| 項目 | 結果 |
+|---|---|
+| 打包產物 | `Novel Reader-1.0.0-Setup.exe`、`-Portable.exe`（各約 102MB） |
+| `app-update.yml` | 正確嵌入，指向 habufly/novel-reader |
+| `latest.yml` | 隨打包產生，供更新器比對版本 |
+| 更新檢查 | 連得上 GitHub，正確回報「還沒有發佈任何版本」 |
+| 開機自啟／自動檢查 | 設定可切換並持久化 |
+| 系統匣圖示 | 透過 `extraResources` 在打包後讀得到 |
 
 ---
 

@@ -45,5 +45,10 @@ nsis:
 portable:
   artifactName: ${productName}-${version}-Portable.${ext}
 
-# 不上傳、不自動發佈；Phase 6 才接 GitHub Releases
-publish: null
+# 發佈管道。這段同時會把 app-update.yml 打包進去，
+# 自動更新才知道要去哪裡找新版本。本機建置不會上傳，
+# 只有 CI 上帶著標籤建置（或加 --publish always）才會真的發佈。
+publish:
+  provider: github
+  owner: habufly
+  repo: novel-reader

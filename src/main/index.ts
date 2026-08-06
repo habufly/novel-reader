@@ -7,6 +7,9 @@ import { registerSettingsIpc } from './ipc/settingsIpc'
 import { registerProgressIpc } from './ipc/progressIpc'
 import { registerTtsIpc } from './ipc/ttsIpc'
 import { setSpeaking, setupTray } from './tray'
+import { registerUpdateIpc } from './ipc/updateIpc'
+import { bindUpdaterWindow, checkForUpdates } from './updater'
+import { effectivePreferences, syncLoginItem } from './storage/preferences'
 
 /**
  * 明確指定應用程式名稱，userData 目錄才會固定。
@@ -133,10 +136,19 @@ void app.whenReady().then(async () => {
   registerSettingsIpc()
   registerProgressIpc()
   registerTtsIpc()
+  registerUpdateIpc()
 
   const win = createWindow()
   setupTray(win)
   registerMediaKeys(win)
+  bindUpdaterWindow(win)
+
+  const prefs = effectivePreferences()
+  syncLoginItem(prefs.launchAtLogin)
+  if (prefs.autoCheckUpdates) {
+    // 延後檢查，別跟開窗與書櫃載入搶資源
+    setTimeout(() => void checkForUpdates(), 8000)
+  }
 
   // renderer 回報朗讀狀態，系統匣圖示只在聽書時出現
   ipcMain.on('tts:speaking', (_e, value: boolean) => setSpeaking(win, value))

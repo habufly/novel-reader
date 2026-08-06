@@ -1,6 +1,6 @@
 {
   "name": "novel-reader",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Windows 桌面小說閱讀器：自動書籤、章節目錄、夜間模式、字型調節、語音聽書",
   "main": "./out/main/index.js",
   "author": "habufly",
@@ -17,6 +17,7 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "iconv-lite": "0.7.3",
     "jschardet": "3.1.4",
     "ws": "^8.18.3"

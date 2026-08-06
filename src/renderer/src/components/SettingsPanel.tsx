@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FontOption, ThemeName } from '@shared/types'
 import { FONT_MAX, FONT_MIN, useSettings } from '../stores/useSettings'
 import { BUILTIN_FONTS, queryLocalFonts } from '../lib/fonts'
+import AboutSection from './AboutSection'
 
 interface Props {
   onClose: () => void
@@ -259,6 +260,8 @@ export default function SettingsPanel({ onClose }: Props): React.JSX.Element {
             </div>
             <p className="set__note">同名會覆寫。存的是目前所有設定，含主題。</p>
           </section>
+
+          <AboutSection />
         </div>
 
         <footer className="set__foot">

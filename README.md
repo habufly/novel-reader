@@ -12,7 +12,7 @@ Windows 桌面小說閱讀器：自動書籤、章節目錄、夜間模式、字
 - **Phase 3 自動書籤：完成** — 位置自動存續、手動書籤、跳轉歷史、章節搜尋、已讀標記
 - **Phase 4 主題與字型：完成** — 四套主題、系統字型列舉、版面調整、預設組合
 - **Phase 5 語音聽書：完成** — 離線語音、逐詞高亮、跨章連播、睡眠計時、媒體鍵與系統匣
-- Phase 6 發佈整備：未開始
+- **Phase 6 發佈整備：完成** — 自動更新、開機自啟、GitHub Actions 發佈流程
 
 > 線上 Edge 神經語音已實作但**目前無法使用**：微軟的非官方 WebSocket 端點回應 403。切換過去會自動降級回離線語音並提示，朗讀不會中斷。
 
@@ -61,10 +61,20 @@ npm run selftest -- "D:\novels\某本小說.txt"
 
 `npm run build:win` 會在 `dist/` 產出兩個檔案：
 
-- `Novel Reader-0.1.0-Setup.exe` — NSIS 安裝檔，可選安裝路徑
-- `Novel Reader-0.1.0-Portable.exe` — 免安裝版
+- `Novel Reader-1.0.0-Setup.exe` — NSIS 安裝檔，可選安裝路徑
+- `Novel Reader-1.0.0-Portable.exe` — 免安裝版
 
-兩者皆未經程式碼簽章，首次執行會出現 Windows SmartScreen 警告，選「其他資訊 → 仍要執行」即可。
+兩者皆未經程式碼簽章，首次執行會出現 Windows SmartScreen 警告，選「其他資訊 → 仍要執行」即可。要消除警告需購買 OV/EV 憑證（年費約 US$200–400）。
+
+## 發佈
+
+推送 `v` 開頭的標籤即觸發 GitHub Actions，在 windows-latest 上型別檢查、編譯、打包並發佈到 Releases：
+
+```bash
+npm version patch && git push --follow-tags
+```
+
+安裝版會在啟動 8 秒後靜靜檢查一次更新，有新版時於設定面板的「關於與更新」提示。**下載與安裝都需要使用者確認**，不會在閱讀中途強制重啟。免安裝版不支援自動更新。
 
 ## 專案結構
 

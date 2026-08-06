@@ -11,7 +11,9 @@ import type {
   ReaderSettings,
   EdgeVoice,
   SynthesisPayload,
-  TtsSettings
+  TtsSettings,
+  UpdateStatus,
+  AppPreferences
 } from '@shared/types'
 
 /**
@@ -90,6 +92,24 @@ const api = {
       ipcRenderer.on('tts:command', handler)
       return () => ipcRenderer.off('tts:command', handler)
     }
+  },
+
+  update: {
+    status: (): Promise<UpdateStatus> => ipcRenderer.invoke('update:status'),
+    check: (): Promise<UpdateStatus> => ipcRenderer.invoke('update:check'),
+    download: (): Promise<void> => ipcRenderer.invoke('update:download'),
+    install: (): Promise<void> => ipcRenderer.invoke('update:install'),
+    onStatus: (fn: (s: UpdateStatus) => void): (() => void) => {
+      const handler = (_e: unknown, s: UpdateStatus): void => fn(s)
+      ipcRenderer.on('update:status', handler)
+      return () => ipcRenderer.off('update:status', handler)
+    }
+  },
+
+  prefs: {
+    get: (): Promise<AppPreferences> => ipcRenderer.invoke('prefs:get'),
+    set: (patch: Partial<AppPreferences>): Promise<AppPreferences> =>
+      ipcRenderer.invoke('prefs:set', patch)
   }
 }
 

@@ -7,12 +7,14 @@ import { useSettings } from './stores/useSettings'
 
 export default function App(): React.JSX.Element {
   const [open, setOpen] = useState<Book | null>(null)
+  const [version, setVersion] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const loadSettings = useSettings((s) => s.load)
   const theme = useSettings((s) => s.theme)
 
   useEffect(() => {
     void loadSettings()
+    void window.api.getAppInfo().then((i) => setVersion(i.version))
   }, [loadSettings])
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function App(): React.JSX.Element {
     <div className="shell">
       <header className="shell__header">
         <h1 className="shell__title">Novel Reader</h1>
-        <span className="shell__phase">Phase 4 · 主題與字型</span>
+        <span className="shell__phase">{version && `v${version}`}</span>
       </header>
       <main className="shell__body">
         <Library onOpenBook={setOpen} onOpenSettings={() => setSettingsOpen(true)} />
