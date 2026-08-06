@@ -22,8 +22,7 @@ Windows 桌面小說閱讀器：自動書籤、章節目錄、夜間模式、字
 
 | 按鍵 | 動作 |
 |---|---|
-| `↑` `↓` | 捲動 |
-| `PgUp` `PgDn` | 翻頁 |
+| `↑` `↓`／`PgUp` `PgDn` | 翻頁 |
 | `←` `→` | 上一章／下一章 |
 | `Ctrl` `+` `-` | 調整字級 |
 | `Ctrl+D` | 在目前位置加書籤（有選取文字則存下選取內容） |
@@ -61,8 +60,8 @@ npm run selftest -- "D:\novels\某本小說.txt"
 
 `npm run build:win` 會在 `dist/` 產出兩個檔案：
 
-- `Novel Reader-1.0.0-Setup.exe` — NSIS 安裝檔，可選安裝路徑
-- `Novel Reader-1.0.0-Portable.exe` — 免安裝版
+- `Novel Reader-<版本>-Setup.exe` — NSIS 安裝檔，可選安裝路徑
+- `Novel Reader-<版本>-Portable.exe` — 免安裝版
 
 兩者皆未經程式碼簽章，首次執行會出現 Windows SmartScreen 警告，選「其他資訊 → 仍要執行」即可。要消除警告需購買 OV/EV 憑證（年費約 US$200–400）。
 

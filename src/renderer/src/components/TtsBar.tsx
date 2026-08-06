@@ -47,15 +47,15 @@ export default function TtsBar(): React.JSX.Element | null {
         <button className="tts__play" onClick={() => void t.toggle()} title="空白鍵">
           {t.playing ? '⏸' : '▶'}
         </button>
-        <button className="tts__btn" onClick={() => void t.skip(-1)} title="上一句">
+        <button className="tts__btn" onClick={() => void t.skip(-1)} title="上一段">
           ⏮
         </button>
-        <button className="tts__btn" onClick={() => void t.skip(1)} title="下一句">
+        <button className="tts__btn" onClick={() => void t.skip(1)} title="下一段">
           ⏭
         </button>
 
         <span className="tts__pos">
-          {t.chunks.length ? `${t.index + 1} / ${t.chunks.length} 句` : '尚未開始'}
+          {t.chunks.length ? `${t.index + 1} / ${t.chunks.length} 段` : '尚未開始'}
         </span>
 
         <label className="tts__inline">
@@ -64,7 +64,7 @@ export default function TtsBar(): React.JSX.Element | null {
             className="tts__slider"
             type="range"
             min={0.5}
-            max={3}
+            max={4}
             step={0.1}
             value={t.settings.rate}
             onChange={(e) => void t.patch({ rate: Number(e.target.value) })}

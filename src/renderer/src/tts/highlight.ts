@@ -69,19 +69,33 @@ export interface HighlightTarget {
   length: number
 }
 
-/** 標出正在唸的詞 */
-export function highlightWord(target: HighlightTarget | null): void {
+function markSpeaking(el: HTMLElement | null): void {
+  document
+    .querySelectorAll('.chapter__p.is-speaking')
+    .forEach((e) => e !== el && e.classList.remove('is-speaking'))
+  el?.classList.add('is-speaking')
+}
+
+/**
+ * 標出正在唸的詞，並回傳該詞所在的段落。
+ *
+ * 一個朗讀段落可能跨越好幾個 <p>（短對話會被合併成一段唸），
+ * 所以「正在朗讀」的段落標記要跟著詞走，不能固定在朗讀段落的起點。
+ */
+export function highlightWord(target: HighlightTarget | null): HTMLElement | null {
   if (!target) {
     apply(WORD, null)
-    return
+    return null
   }
   const el = paragraphAt(target.chapterId, target.start)
   if (!el) {
     apply(WORD, null)
-    return
+    return null
   }
   const base = Number(el.dataset['offset'])
   apply(WORD, makeRange(el, target.start - base, target.start - base + target.length))
+  markSpeaking(el)
+  return el
 }
 
 /** 標出正在唸的整段句子，並回傳該段落元素供捲動使用 */
@@ -98,9 +112,7 @@ export function highlightChunk(target: HighlightTarget | null): HTMLElement | nu
   }
   const base = Number(el.dataset['offset'])
   apply(CHUNK, makeRange(el, target.start - base, target.start - base + target.length))
-
-  document.querySelectorAll('.chapter__p.is-speaking').forEach((e) => e.classList.remove('is-speaking'))
-  el.classList.add('is-speaking')
+  markSpeaking(el)
   return el
 }
 

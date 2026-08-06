@@ -174,13 +174,14 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
       }
 
       switch (e.key) {
+        // 上下鍵與 PgUp/PgDn 一樣是換頁（不是換章），逐行捲動用滑鼠滾輪就好
         case 'ArrowDown':
           e.preventDefault()
-          flow?.scrollBy(120)
+          flow?.pageDown()
           break
         case 'ArrowUp':
           e.preventDefault()
-          flow?.scrollBy(-120)
+          flow?.pageUp()
           break
         case 'PageDown':
           e.preventDefault()
@@ -299,7 +300,7 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
           <span className="statusbar__title">{chapters[current.chapterId]?.title ?? ''}</span>
           <div className="statusbar__spacer" />
           <span className="statusbar__hint">
-            空白鍵朗讀 · ← → 換章 · Ctrl+D 書籤 · Alt+← 返回 · Ctrl± {fontSize}px · F11 全螢幕
+            空白鍵朗讀 · ↑↓ 翻頁 · ← → 換章 · Ctrl+D 書籤 · Alt+← 返回 · Ctrl± {fontSize}px · F11 全螢幕
           </span>
           <span className="statusbar__progress">
             {current.chapterId + 1}/{chapters.length} · {percent.toFixed(1)}%

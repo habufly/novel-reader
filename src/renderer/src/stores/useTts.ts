@@ -9,6 +9,9 @@ import { useReader } from './useReader'
 
 export type SleepMode = 'off' | '15' | '30' | '60' | 'chapter'
 
+/** 朗讀位置每前進這麼多字才回寫一次閱讀位置 */
+const POSITION_SYNC_CHARS = 30
+
 interface TtsState {
   /** 控制列是否顯示 */
   open: boolean
@@ -103,10 +106,15 @@ export const useTts = create<TtsState>((set, get) => ({
     const chunks = chunkChapter(current.chapterId, body)
     if (!chunks.length) return
 
+    // 段落最長 280 字，只定位到段落開頭的話最多會倒退 40 秒的內容。
+    // 用段內位移精準接上使用者讀到的地方。
+    const index = chunkAt(chunks, current.charOffset)
+    const resumeAt = Math.max(0, current.charOffset - chunks[index]!.start)
+
     set({
       chunks,
-      index: chunkAt(chunks, current.charOffset),
-      resumeAt: 0,
+      index,
+      resumeAt,
       playing: true,
       paused: false,
       open: true
@@ -219,10 +227,31 @@ async function runLoop(gen: number, set: Setter, get: () => TtsState): Promise<v
     })
     if (el && settings.autoScroll) scrollToSpoken(el)
 
+    // 段落可能長達 280 字，只在段落起點更新閱讀位置的話，自動書籤會
+    // 落後一大截。改成跟著詞走，但要等位移拉開一段距離才寫，
+    // 免得每個詞都觸發一次 store 更新。
+    let syncedAt = chunk.start
+    let lastEl: HTMLElement | null = null
+
     const outcome = await engine.speak(chunk.text, get().resumeAt, settings, {
       onWord: (charIndex, length) => {
-        if (gen !== generation || !get().settings.highlightWords) return
-        highlightWord({ chapterId: chunk.chapterId, start: chunk.start + charIndex, length })
+        if (gen !== generation) return
+        const absolute = chunk.start + charIndex
+        const state = get()
+
+        if (state.settings.highlightWords) {
+          const el = highlightWord({ chapterId: chunk.chapterId, start: absolute, length })
+          // 唸到下一個段落才捲動，不要每個詞都微調畫面
+          if (el && el !== lastEl) {
+            lastEl = el
+            if (state.settings.autoScroll) scrollToSpoken(el)
+          }
+        }
+
+        if (absolute - syncedAt >= POSITION_SYNC_CHARS) {
+          syncedAt = absolute
+          useReader.getState().setCurrent({ chapterId: chunk.chapterId, charOffset: absolute })
+        }
       }
     })
 
