@@ -32,7 +32,24 @@ jobs:
       - name: 編譯
         run: npm run build
 
-      - name: 打包並發佈
+      # 先把 Release 建好再交給 electron-builder 上傳。
+      # 它會同時上傳四個產物（Setup、Portable、blockmap、latest.yml），
+      # 每個上傳器各自檢查「這個標籤有沒有 Release」，若都在對方建立前
+      # 檢查到「沒有」就會各建一個，結果是兩個 Release 把檔案分走 ——
+      # v1.0.0 就是這樣只剩一個 blockmap 在公開的那一個裡面。
+      - name: 先建立 Release
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，直接沿用"
+          else
+            gh release create "$TAG" --title "$TAG" --generate-notes --verify-tag
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 打包並上傳
         run: npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
