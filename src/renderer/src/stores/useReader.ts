@@ -43,7 +43,7 @@ interface ReaderState {
   open: (book: Book) => Promise<void>
   close: () => void
   extend: (dir: 1 | -1) => Promise<void>
-  jumpTo: (chapterId: number, charOffset?: number) => Promise<void>
+  jumpTo: (chapterId: number, charOffset?: number, opts?: { recordHistory?: boolean }) => Promise<void>
   goBack: () => Promise<void>
   setCurrent: (pos: ReadingPosition) => void
   clearPendingScroll: () => void
@@ -148,12 +148,14 @@ export const useReader = create<ReaderState>((set, get) => ({
     }
   },
 
-  jumpTo: async (chapterId, charOffset = 0) => {
+  jumpTo: async (chapterId, charOffset = 0, opts) => {
     const { book, chapters, current, history } = get()
     if (!book) return
     const id = Math.min(Math.max(chapterId, 0), chapters.length - 1)
 
-    // 跳轉前把舊位置壓進歷史，Alt+← 才能回得去
+    // 跳轉前把舊位置壓進歷史，Alt+← 才能回得去。
+    // 朗讀自動連播會關掉這個行為，否則歷史很快就被連續章節塞滿。
+    const record = opts?.recordHistory !== false
     const entry: HistoryEntry = { ...current, at: new Date().toISOString() }
     const text = get().texts[id] ?? (await fetchText(book.id, id))
 
@@ -162,7 +164,7 @@ export const useReader = create<ReaderState>((set, get) => ({
       mounted: [id],
       current: { chapterId: id, charOffset },
       pendingScroll: { chapterId: id, charOffset },
-      history: [entry, ...history].slice(0, HISTORY_LIMIT)
+      history: record ? [entry, ...history].slice(0, HISTORY_LIMIT) : history
     })
     get().persist({ force: true })
     void prefetch(book.id, [id - 1, id + 1], chapters.length, set, get)

@@ -20,6 +20,11 @@ files:
 asarUnpack:
   - resources/**
 
+# 系統匣圖示要在執行期讀得到，build/ 本身不會被打包進去
+extraResources:
+  - from: build/icon.ico
+    to: icon.ico
+
 win:
   target:
     - target: nsis

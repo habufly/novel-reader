@@ -5,6 +5,8 @@ import { useSettings } from '../stores/useSettings'
 import ChapterFlow, { type ChapterFlowHandle } from '../components/ChapterFlow'
 import TocSidebar from '../components/TocSidebar'
 import BookmarkList from '../components/BookmarkList'
+import TtsBar from '../components/TtsBar'
+import { useTts } from '../stores/useTts'
 
 interface Props {
   book: Book
@@ -36,6 +38,13 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
   const readChapters = useReader((s) => s.readChapters)
   const bookmarks = useReader((s) => s.bookmarks)
   const hasHistory = useReader((s) => s.history.length > 0)
+  const ttsInit = useTts((s) => s.init)
+  const ttsStart = useTts((s) => s.start)
+  const ttsToggle = useTts((s) => s.toggle)
+  const ttsStop = useTts((s) => s.stop)
+  const ttsSkip = useTts((s) => s.skip)
+  const ttsOpen = useTts((s) => s.open)
+  const ttsPlaying = useTts((s) => s.playing)
   const fontSize = useSettings((s) => s.fontSize)
   const bumpFontSize = useSettings((s) => s.bumpFontSize)
 
@@ -52,6 +61,31 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
   const onFlowReady = useCallback((h: ChapterFlowHandle) => {
     flowRef.current = h
   }, [])
+
+  useEffect(() => {
+    void ttsInit()
+    return ttsStop
+  }, [ttsInit, ttsStop])
+
+  // 系統匣選單與鍵盤媒體鍵送來的指令
+  useEffect(() => {
+    return window.api.tts.onCommand((cmd) => {
+      if (cmd === 'toggle') void ttsToggle()
+      else if (cmd === 'stop') ttsStop()
+      else if (cmd === 'next') void ttsSkip(1)
+      else if (cmd === 'prev') void ttsSkip(-1)
+    })
+  }, [ttsToggle, ttsStop, ttsSkip])
+
+  // 主行程據此決定要不要顯示系統匣圖示
+  useEffect(() => {
+    window.api.tts.reportSpeaking(ttsPlaying)
+  }, [ttsPlaying])
+
+  const toggleSpeech = useCallback(() => {
+    if (ttsOpen) void ttsToggle()
+    else void ttsStart()
+  }, [ttsOpen, ttsToggle, ttsStart])
 
   const flash = useCallback((msg: string) => {
     setToast(msg)
@@ -157,10 +191,10 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
           flow?.pageUp()
           break
         case ' ':
-          // Phase 5 接上語音後，空白鍵會改成播放／暫停朗讀
           e.preventDefault()
+          // 需求 6：空白鍵播放／暫停朗讀。翻頁仍可用 PgUp/PgDn
           if (e.shiftKey) flow?.pageUp()
-          else flow?.pageDown()
+          else toggleSpeech()
           break
         case 'ArrowRight':
           e.preventDefault()
@@ -184,7 +218,7 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [bumpFontSize, jumpTo, goBack, addBookmark, flash, current.chapterId, onBack])
+  }, [bumpFontSize, jumpTo, goBack, addBookmark, flash, toggleSpeech, current.chapterId, onBack])
 
   return (
     <div className={`reader ${tocOpen ? '' : 'reader--noToc'}`}>
@@ -246,9 +280,18 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
 
         {toast && <div className="toast">{toast}</div>}
 
+        <TtsBar />
+
         <footer className="statusbar">
           <button className="btn btn--ghost" onClick={() => setTocOpen((v) => !v)} title="Ctrl+T">
             {tocOpen ? '隱藏目錄' : '顯示目錄'}
+          </button>
+          <button
+            className={`btn btn--ghost ${ttsPlaying ? 'is-on' : ''}`}
+            onClick={toggleSpeech}
+            title="空白鍵　朗讀"
+          >
+            {ttsPlaying ? '朗讀中' : '朗讀'}
           </button>
           <button className="btn btn--ghost" onClick={onOpenSettings} title="Ctrl+,">
             設定
@@ -256,7 +299,7 @@ export default function Reader({ book, onBack, onOpenSettings }: Props): React.J
           <span className="statusbar__title">{chapters[current.chapterId]?.title ?? ''}</span>
           <div className="statusbar__spacer" />
           <span className="statusbar__hint">
-            ← → 換章 · Ctrl+D 書籤 · Alt+← 返回 · Ctrl± {fontSize}px · Ctrl+, 設定 · F11 全螢幕
+            空白鍵朗讀 · ← → 換章 · Ctrl+D 書籤 · Alt+← 返回 · Ctrl± {fontSize}px · F11 全螢幕
           </span>
           <span className="statusbar__progress">
             {current.chapterId + 1}/{chapters.length} · {percent.toFixed(1)}%

@@ -1218,3 +1218,211 @@ body {
 :root[data-settings='open'] .statusbar__hint {
   display: none;
 }
+
+/* ------------------------------------------------------------ 朗讀高亮 */
+
+/* CSS Custom Highlight API：只疊樣式，不動 DOM 結構 */
+::highlight(tts-chunk) {
+  background: var(--accent-soft);
+}
+
+::highlight(tts-word) {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* Highlight API 不可用時的退路：至少標出整個段落 */
+.chapter__p.is-speaking {
+  box-shadow: -0.5em 0 0 var(--accent-soft), 0.5em 0 0 var(--accent-soft);
+  background: var(--accent-soft);
+}
+
+/* ---------------------------------------------------------- 朗讀控制列 */
+
+.tts {
+  position: relative;
+  border-top: 1px solid var(--accent);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.tts__progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.2s linear;
+}
+
+.tts__main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  white-space: nowrap;
+}
+
+.tts__play {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tts__play:hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.tts__btn {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.tts__btn:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.tts__pos,
+.tts__sleep {
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.tts__sleep {
+  color: var(--accent);
+}
+
+.tts__inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.tts__slider {
+  width: 90px;
+  height: 3px;
+  appearance: none;
+  border-radius: 2px;
+  background: var(--border);
+  cursor: pointer;
+}
+
+.tts__slider::-webkit-slider-thumb,
+.tts__field input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.tts__num {
+  min-width: 3.2em;
+  font-size: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.tts__spacer {
+  flex: 1;
+}
+
+.tts__panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 18px;
+  padding: 4px 14px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.tts__field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.tts__field > span:first-child {
+  width: 3em;
+  flex-shrink: 0;
+}
+
+.tts__field select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.tts__field input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  height: 3px;
+  appearance: none;
+  border-radius: 2px;
+  background: var(--border);
+  cursor: pointer;
+}
+
+.tts__check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.tts__notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tts__noticeClose {
+  margin-left: auto;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.btn.is-on {
+  color: var(--accent);
+}

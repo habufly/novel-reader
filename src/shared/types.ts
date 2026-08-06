@@ -169,6 +169,56 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   pagePadding: 32
 }
 
+// ---------------------------------------------------------------- 語音
+
+export type TtsEngineId = 'local' | 'edge'
+
+export interface EdgeVoice {
+  shortName: string
+  locale: string
+  gender: string
+  label: string
+}
+
+export interface WordBoundary {
+  /** 相對於這段音訊起點的毫秒數 */
+  timeMs: number
+  text: string
+  length: number
+}
+
+export interface SynthesisPayload {
+  /** MP3 位元組，經 IPC 傳給 renderer 組成 blob 播放 */
+  audio: Uint8Array
+  boundaries: WordBoundary[]
+}
+
+export interface TtsSettings {
+  engine: TtsEngineId
+  /** 離線引擎使用的 SpeechSynthesisVoice.name */
+  localVoice: string
+  /** 線上引擎使用的 Edge 語音短名，例如 zh-TW-HsiaoChenNeural */
+  edgeVoice: string
+  rate: number
+  pitch: number
+  volume: number
+  /** 高亮到詞。關掉就只標整句，某些語音的邊界資料不準時可以關 */
+  highlightWords: boolean
+  /** 朗讀時自動捲動跟上 */
+  autoScroll: boolean
+}
+
+export const DEFAULT_TTS: TtsSettings = {
+  engine: 'local',
+  localVoice: '',
+  edgeVoice: 'zh-TW-HsiaoChenNeural',
+  rate: 1,
+  pitch: 1,
+  volume: 1,
+  highlightWords: true,
+  autoScroll: true
+}
+
 export interface ReaderPreset {
   id: string
   name: string

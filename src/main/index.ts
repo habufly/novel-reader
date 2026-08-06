@@ -1,10 +1,12 @@
-import { app, shell, session, nativeTheme, BrowserWindow } from 'electron'
+import { app, shell, session, nativeTheme, globalShortcut, ipcMain, BrowserWindow } from 'electron'
 import { join } from 'node:path'
 import { loadWindowState, trackWindowState } from './storage/windowState'
 import { registerAppIpc } from './ipc/appIpc'
 import { registerLibraryIpc } from './ipc/libraryIpc'
 import { registerSettingsIpc } from './ipc/settingsIpc'
 import { registerProgressIpc } from './ipc/progressIpc'
+import { registerTtsIpc } from './ipc/ttsIpc'
+import { setSpeaking, setupTray } from './tray'
 
 /**
  * 明確指定應用程式名稱，userData 目錄才會固定。
@@ -130,8 +132,14 @@ void app.whenReady().then(async () => {
   registerLibraryIpc()
   registerSettingsIpc()
   registerProgressIpc()
+  registerTtsIpc()
 
   const win = createWindow()
+  setupTray(win)
+  registerMediaKeys(win)
+
+  // renderer 回報朗讀狀態，系統匣圖示只在聽書時出現
+  ipcMain.on('tts:speaking', (_e, value: boolean) => setSpeaking(win, value))
 
   app.on('second-instance', () => {
     if (win.isMinimized()) win.restore()
@@ -142,6 +150,26 @@ void app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+/**
+ * 媒體鍵。朗讀時常常是最小化在背景聽，鍵盤上的播放鍵要能直接控制。
+ * 註冊失敗（被其他程式佔用）不影響其他功能，靜靜略過即可。
+ */
+function registerMediaKeys(win: BrowserWindow): void {
+  const bind = (accelerator: string, command: string): void => {
+    try {
+      globalShortcut.register(accelerator, () => win.webContents.send('tts:command', command))
+    } catch {
+      /* 熱鍵被佔用就算了 */
+    }
+  }
+  bind('MediaPlayPause', 'toggle')
+  bind('MediaStop', 'stop')
+  bind('MediaNextTrack', 'next')
+  bind('MediaPreviousTrack', 'prev')
+}
+
+app.on('will-quit', () => globalShortcut.unregisterAll())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

@@ -8,7 +8,10 @@ import type {
   ImportProgress,
   ImportResult,
   ReaderPreset,
-  ReaderSettings
+  ReaderSettings,
+  EdgeVoice,
+  SynthesisPayload,
+  TtsSettings
 } from '@shared/types'
 
 /**
@@ -64,6 +67,29 @@ const api = {
 
   window: {
     toggleFullscreen: (): Promise<boolean> => ipcRenderer.invoke('window:toggleFullscreen')
+  },
+
+  tts: {
+    getSettings: (): Promise<TtsSettings> => ipcRenderer.invoke('tts:getSettings'),
+    setSettings: (patch: Partial<TtsSettings>): Promise<TtsSettings> =>
+      ipcRenderer.invoke('tts:setSettings', patch),
+    edgeVoices: (): Promise<EdgeVoice[]> => ipcRenderer.invoke('tts:edgeVoices'),
+    synthesize: (
+      text: string,
+      voice: string,
+      rate: number,
+      pitch: number
+    ): Promise<SynthesisPayload> => ipcRenderer.invoke('tts:synthesize', text, voice, rate, pitch),
+
+    /** 告知主行程目前是否在朗讀，用來決定要不要顯示系統匣圖示 */
+    reportSpeaking: (value: boolean): void => ipcRenderer.send('tts:speaking', value),
+
+    /** 系統匣選單與媒體鍵送來的指令 */
+    onCommand: (fn: (cmd: string) => void): (() => void) => {
+      const handler = (_e: unknown, cmd: string): void => fn(cmd)
+      ipcRenderer.on('tts:command', handler)
+      return () => ipcRenderer.off('tts:command', handler)
+    }
   }
 }
 
