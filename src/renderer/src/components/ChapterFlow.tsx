@@ -16,9 +16,60 @@ interface Section {
 }
 
 export interface ChapterFlowHandle {
-  scrollBy: (delta: number) => void
   pageDown: () => void
   pageUp: () => void
+}
+
+/**
+ * 取出元素內每一行的行框，座標換算成捲動容器的內容座標。
+ *
+ * 行不是獨立的 DOM 元素，但把 Range 圈住整個文字節點後，
+ * getClientRects() 會逐行回傳矩形，這是拿到行邊界的唯一辦法。
+ */
+function lineBoxes(el: HTMLElement, scroller: HTMLElement): Array<{ top: number; bottom: number }> {
+  const node = el.firstChild
+  if (!node || node.nodeType !== Node.TEXT_NODE) {
+    return [{ top: el.offsetTop, bottom: el.offsetTop + el.offsetHeight }]
+  }
+  const range = document.createRange()
+  range.selectNodeContents(node)
+  // getClientRects 給的是視窗座標，要換回內容座標才能拿來設 scrollTop
+  const base = scroller.getBoundingClientRect().top - scroller.scrollTop
+  return Array.from(range.getClientRects(), (r) => ({ top: r.top - base, bottom: r.bottom - base }))
+}
+
+/**
+ * 把捲動位置吸附到行的起點：找出第一個「底部越過目標線」的行，回傳它的頂端。
+ *
+ * 這條規則同時滿足兩件事 —— 已經完整看過的行不會重複出現在下一頁頂端，
+ * 而被頁尾切到一半、還沒讀完的那一行會成為下一頁的第一行，不會被跳過。
+ */
+function snapToLine(scroller: HTMLElement, target: number): number {
+  const blocks = Array.from(scroller.querySelectorAll<HTMLElement>('.chapter__title, .chapter__p'))
+  if (!blocks.length) return target
+
+  // 元素依文件順序排列，用二分搜尋跳到目標附近，不要每次翻頁都掃過上千個段落
+  let lo = 0
+  let hi = blocks.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    const el = blocks[mid]!
+    if (el.offsetTop + el.offsetHeight > target) hi = mid
+    else lo = mid + 1
+  }
+
+  for (let i = lo; i < blocks.length && i < lo + 4; i++) {
+    const el = blocks[i]!
+    const lines = lineBoxes(el, scroller)
+    // 目標落在段落之間的空白處，就對齊下一個段落的第一行。
+    // 這裡也要用行框而不是 el.offsetTop —— 兩者差一個半行距，
+    // 混用會讓每一頁的對齊基準忽上忽下。
+    if (el.offsetTop > target) return lines[0]?.top ?? el.offsetTop
+    for (const line of lines) {
+      if (line.bottom > target + 1) return line.top
+    }
+  }
+  return target
 }
 
 interface Props {
@@ -158,15 +209,27 @@ export default function ChapterFlow({ onReady }: Props): React.JSX.Element {
 
   useEffect(() => {
     if (!onReady) return
-    const scrollBy = (delta: number): void => {
-      scrollerRef.current?.scrollBy({ top: delta, behavior: 'auto' })
+
+    /**
+     * 翻頁。捲動距離不是固定的一個視窗高度，而是先算出理想位置，
+     * 再吸附到最近的行起點 —— 直接捲一整個視窗高度的話，頁首會出現
+     * 被切掉一半的那一行，比留重疊更難看。
+     */
+    const turn = (dir: 1 | -1): void => {
+      const scroller = scrollerRef.current
+      if (!scroller) return
+      const height = scroller.clientHeight
+      const target = scroller.scrollTop + dir * height
+      let next = snapToLine(scroller, target)
+
+      // 吸附後若原地不動（例如整頁只有一行超長段落），至少要前進一頁
+      if (dir === 1 && next <= scroller.scrollTop + 1) next = scroller.scrollTop + height
+      if (dir === -1 && next >= scroller.scrollTop - 1) next = scroller.scrollTop - height
+
+      scroller.scrollTo({ top: Math.max(0, next), behavior: 'auto' })
     }
-    onReady({
-      scrollBy,
-      // 翻頁保留兩行重疊，避免視線接不上
-      pageDown: () => scrollBy((scrollerRef.current?.clientHeight ?? 0) - 60),
-      pageUp: () => scrollBy(-((scrollerRef.current?.clientHeight ?? 0) - 60))
-    })
+
+    onReady({ pageDown: () => turn(1), pageUp: () => turn(-1) })
   }, [onReady])
 
   return (
