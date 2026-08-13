@@ -62,7 +62,7 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
               <strong>{book.title}</strong>
               <span className="report__line">
                 {report.strategy === 'numbered'
-                  ? `依「${report.unit}」切出 ${report.accepted} 章`
+                  ? `依「${report.unit}」切出 ${report.accepted} 章${report.volumes > 1 ? `（${report.volumes} 卷，編號各自重新開始）` : ''}`
                   : `未偵測到章節結構，改用固定字數切成 ${book.chapterCount} 節`}
                 {report.specials > 0 && `，另含 ${report.specials} 個番外／序章`}
               </span>

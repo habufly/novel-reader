@@ -55,9 +55,9 @@ export async function runSelfTest(argPaths: string[], options: SelfTestOptions):
     say(`  ${(bytes / 1024 / 1024).toFixed(2)} MB → ${elapsed}ms`)
     say(`  書名: ${book.title}${book.author ? ` / ${book.author}` : ''}`)
     say(`  編碼: ${book.encoding}`)
-    say(`  切分: ${report.strategy}${report.unit ? ` 依「${report.unit}」` : ''}`)
+    say(`  切分: ${report.strategy}${report.unit ? ` 依「${report.unit}」` : ''}${report.volumes > 1 ? `，${report.volumes} 卷` : ''}`)
     say(`  候選 ${report.candidates} → 採用 ${report.accepted}，剔除 ${report.rejectedOutOfOrder}，特殊章 ${report.specials}`)
-    say(`  單位競爭: ${report.unitScores.map((u) => `${u.unit}(命中${u.candidates}/序列${u.longestRun})`).join(' ')}`)
+    say(`  單位競爭: ${report.unitScores.map((u) => `${u.unit}(命中${u.candidates}/採用${u.accepted})`).join(' ')}`)
     say(`  雜訊行: ${report.junkLines}`)
     say(`  總計 ${book.chapterCount} 章 / ${book.charCount} 字`)
 
@@ -72,6 +72,18 @@ export async function runSelfTest(argPaths: string[], options: SelfTestOptions):
       `最小 ${Math.min(...index.chapters.map((c) => c.charCount))} 字`)
     check('位元組範圍遞增且不重疊',
       index.chapters.every((c, i) => i === 0 || c.byteStart > index.chapters[i - 1]!.byteEnd))
+
+    /**
+     * 超大章節就是切分失敗的信號 —— 一整段內容沒被切開才會變這麼大。
+     * 《赤心巡天》曾經有 323 萬字擠在同一章（半本書），但因為當時沒有這項
+     * 檢查，selftest 全綠卻沒人發現。門檻放寬到 10 萬字，正常長章不會誤報。
+     */
+    const largest = index.chapters.reduce((a, c) => (c.charCount > a.charCount ? c : a))
+    check(
+      '沒有異常巨大的章節',
+      largest.charCount < 100_000,
+      `最大 ${largest.charCount} 字（${largest.title.slice(0, 20)}）`
+    )
 
     // 抽首、中、尾三章回讀，確認 seek 範圍沒有切到多位元組字元中間
     const probes = [0, Math.floor(index.chapters.length / 2), index.chapters.length - 1]

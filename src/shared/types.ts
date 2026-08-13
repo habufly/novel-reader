@@ -87,8 +87,10 @@ export interface SplitReport {
   specials: number
   /** 被清掉的廣告／分隔線行數 */
   junkLines: number
+  /** 偵測到幾次「章節編號重新開始」，也就是卷的數量 */
+  volumes: number
   /** 各單位的競爭結果，方便使用者理解為何這樣切 */
-  unitScores: Array<{ unit: string; candidates: number; longestRun: number }>
+  unitScores: Array<{ unit: string; candidates: number; accepted: number }>
 }
 
 export interface ImportResult {

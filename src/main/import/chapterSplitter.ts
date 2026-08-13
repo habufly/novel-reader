@@ -68,10 +68,14 @@ const SPECIAL_RE =
 const SPECIAL_MAX_LEN = 24
 const TITLE_MAX_LEN = 40
 
+/** 編號體例。同一本書可能兩套並行，必須分開驗證 */
+type NumberStyle = 'arabic' | 'chinese'
+
 interface Candidate {
   line: number
   title: string
   unit: string
+  style: NumberStyle
   num: number
 }
 
@@ -90,12 +94,9 @@ function toHalfWidth(s: string): string {
 /**
  * 最長嚴格遞增子序列，回傳被選中的索引。
  *
- * 這是整個切分器的核心。真實章節的編號必然構成一條又長又連續的遞增序列；
- * 正文裡碰巧命中的句子則是雜訊。實測樣本檔中「第一節課」「第二節晚自習」
- * 這類校園日常敘述命中了 186 次，但它們的編號在 1～4 之間反覆跳動，
- * 遞增子序列極短，用這個方法可以一次濾乾淨。
- *
- * 同一編號重複出現時（轉檔殘留或重複張貼），嚴格遞增只會保留第一個。
+ * 真實章節的編號會構成又長又連續的遞增序列；正文裡碰巧命中的句子則是雜訊。
+ * 實測樣本檔中「第一節課」「第二節晚自習」這類校園日常敘述命中了 186 次，
+ * 但它們的編號在 1～4 之間反覆跳動，遞增子序列極短，用這個方法可以濾乾淨。
  */
 function longestIncreasingSubsequence(nums: number[]): number[] {
   if (nums.length === 0) return []
@@ -125,13 +126,49 @@ function longestIncreasingSubsequence(nums: number[]): number[] {
   return out.reverse()
 }
 
+/** 一個「卷」至少要有這麼多章才算數，否則視為正文誤判 */
+const MIN_RUN = 5
+
+/**
+ * 分段式序列驗證。
+ *
+ * 單純求全域遞增子序列在「每卷重新編號」的書上會崩潰：《灭运图录》的
+ * 編號是 1..57、1..52、1..78… 重來八次，全域 LIS 只保得住最長的一段，
+ * 914 個真章節裡有 674 個被當成雜訊丟掉，結果就是 62 萬字擠在同一章。
+ *
+ * 改成先在編號下降處切段（那就是換卷），段內各自求 LIS，段夠長才採用。
+ * 正文誤判形成的碎段長度只有一兩個，過不了 MIN_RUN 這關。
+ */
+function segmentedSequence(nums: number[]): { keep: number[]; runs: number } {
+  const bounds: Array<[number, number]> = []
+  let start = 0
+  for (let i = 1; i < nums.length; i++) {
+    if (nums[i]! < nums[i - 1]!) {
+      bounds.push([start, i])
+      start = i
+    }
+  }
+  bounds.push([start, nums.length])
+
+  const keep: number[] = []
+  let runs = 0
+  for (const [a, b] of bounds) {
+    const idx = longestIncreasingSubsequence(nums.slice(a, b)).map((x) => x + a)
+    if (idx.length >= MIN_RUN) {
+      keep.push(...idx)
+      runs++
+    }
+  }
+  return { keep, runs }
+}
+
 // ---------------------------------------------------------------- 主流程
 
 const FIXED_CHUNK_CHARS = 3000
 const MIN_CHAPTERS = 5
 
 export function splitChapters(lines: string[], junkLines: number): SplitResult {
-  const byUnit = new Map<string, Candidate[]>()
+  const candidates: Candidate[] = []
   const specials: SpecialCandidate[] = []
 
   lines.forEach((line, index) => {
@@ -139,47 +176,86 @@ export function splitChapters(lines: string[], junkLines: number): SplitResult {
 
     const m = NUMBERED_RE.exec(line)
     if (m) {
-      const num = parseNumber(toHalfWidth(m[1]!))
+      const raw = toHalfWidth(m[1]!)
+      const num = parseNumber(raw)
       if (Number.isFinite(num)) {
-        const unit = m[2]!
-        const list = byUnit.get(unit) ?? []
-        list.push({ line: index, title: line, unit, num })
-        byUnit.set(unit, list)
+        candidates.push({
+          line: index,
+          title: line,
+          unit: m[2]!,
+          style: /^\d+$/.test(raw) ? 'arabic' : 'chinese',
+          num
+        })
       }
       return
     }
 
     if (line.length <= SPECIAL_MAX_LEN && !/[。，、；]/.test(line)) {
-      const s = SPECIAL_RE.exec(line)
-      if (s) specials.push({ line: index, title: line })
+      if (SPECIAL_RE.test(line)) specials.push({ line: index, title: line })
     }
   })
 
-  // 各單位比賽，遞增子序列最長的才是真正的章節單位
+  /**
+   * 依「單位＋編號體例」分組驗證。
+   *
+   * 為什麼體例要分開：《赤心巡天》同一章有兩套標題並存 ——
+   * 「第一百三十一章风景未看尽」緊接著「第1867章风景未看尽」。兩套交錯後
+   * 編號序列變成 131, 1867, 132, 1868…，每一對都是一次下降，會被切成
+   * 上百個長度一兩個的碎段而全數落選。分流之後兩套各自都是單調遞增的。
+   */
+  const groups = new Map<string, Candidate[]>()
+  for (const c of candidates) {
+    const key = `${c.unit}/${c.style}`
+    const list = groups.get(key) ?? []
+    list.push(c)
+    groups.set(key, list)
+  }
+
+  const acceptedByUnit = new Map<string, Candidate[]>()
+  const runsByUnit = new Map<string, number>()
+  for (const [key, items] of groups) {
+    const unit = key.split('/')[0]!
+    const { keep, runs } = segmentedSequence(items.map((c) => c.num))
+    const list = acceptedByUnit.get(unit) ?? []
+    list.push(...keep.map((i) => items[i]!))
+    acceptedByUnit.set(unit, list)
+    runsByUnit.set(unit, (runsByUnit.get(unit) ?? 0) + runs)
+  }
+
+  const candidatesByUnit = new Map<string, number>()
+  for (const c of candidates) {
+    candidatesByUnit.set(c.unit, (candidatesByUnit.get(c.unit) ?? 0) + 1)
+  }
+
   const unitScores: SplitReport['unitScores'] = []
-  let winner: { unit: string; items: Candidate[]; keep: number[] } | null = null
-
-  for (const [unit, items] of byUnit) {
-    const keep = longestIncreasingSubsequence(items.map((c) => c.num))
-    unitScores.push({ unit, candidates: items.length, longestRun: keep.length })
-    if (!winner || keep.length > winner.keep.length) winner = { unit, items, keep }
+  let winner: { unit: string; accepted: Candidate[] } | null = null
+  for (const [unit, accepted] of acceptedByUnit) {
+    unitScores.push({
+      unit,
+      candidates: candidatesByUnit.get(unit) ?? 0,
+      accepted: accepted.length
+    })
+    if (!winner || accepted.length > winner.accepted.length) winner = { unit, accepted }
   }
-  unitScores.sort((a, b) => b.longestRun - a.longestRun)
+  unitScores.sort((a, b) => b.accepted - a.accepted)
 
-  const totalCandidates = [...byUnit.values()].reduce((n, l) => n + l.length, 0)
-
-  if (!winner || winner.keep.length < MIN_CHAPTERS) {
-    return fixedSizeSplit(lines, junkLines, totalCandidates, unitScores, specials.length)
+  if (!winner || winner.accepted.length < MIN_CHAPTERS) {
+    return fixedSizeSplit(lines, junkLines, candidates.length, unitScores, specials.length)
   }
 
-  // 採用的標題行 → 章節起點
-  const marks: Array<{ line: number; title: string }> = winner.keep.map((i) => ({
-    line: winner!.items[i]!.line,
-    title: winner!.items[i]!.title
-  }))
-
-  // 番外、序章之類併進來，依行號排序
-  for (const s of specials) marks.push({ line: s.line, title: s.title })
+  // 兩套體例可能標到同一行，去重後依行號排序
+  const marks: Array<{ line: number; title: string }> = []
+  const seen = new Set<number>()
+  for (const c of winner.accepted) {
+    if (seen.has(c.line)) continue
+    seen.add(c.line)
+    marks.push({ line: c.line, title: c.title })
+  }
+  for (const s of specials) {
+    if (seen.has(s.line)) continue
+    seen.add(s.line)
+    marks.push({ line: s.line, title: s.title })
+  }
   marks.sort((a, b) => a.line - b.line)
 
   const chapters: SplitChapter[] = []
@@ -194,7 +270,7 @@ export function splitChapters(lines: string[], junkLines: number): SplitResult {
     const start = marks[k]!.line
     const end = k + 1 < marks.length ? marks[k + 1]!.line : lines.length
     const paragraphs = lines.slice(start + 1, end)
-    // 只有標題沒有內文的行是卷名分隔（例如樣本檔尾端單獨一行的「番外」），跳過
+    // 只有標題沒有內文的行是卷名分隔，或是兩套編號標到同一章時多出來的那個標題
     if (paragraphs.length === 0) continue
     chapters.push({ title: marks[k]!.title, paragraphs })
   }
@@ -204,11 +280,12 @@ export function splitChapters(lines: string[], junkLines: number): SplitResult {
     report: {
       strategy: 'numbered',
       unit: winner.unit,
-      candidates: totalCandidates,
-      accepted: winner.keep.length,
-      rejectedOutOfOrder: totalCandidates - winner.keep.length,
+      candidates: candidates.length,
+      accepted: winner.accepted.length,
+      rejectedOutOfOrder: candidates.length - winner.accepted.length,
       specials: specials.length,
       junkLines,
+      volumes: runsByUnit.get(winner.unit) ?? 1,
       unitScores
     }
   }
@@ -250,6 +327,7 @@ function fixedSizeSplit(
       rejectedOutOfOrder: candidates,
       specials,
       junkLines,
+      volumes: 0,
       unitScores
     }
   }
