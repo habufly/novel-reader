@@ -61,6 +61,21 @@ const NUM_CHARS = '零〇一二三四五六七八九十百千萬万兩两0-9０-
  */
 const NUMBERED_RE = new RegExp(`^第\\s*([${NUM_CHARS}]{1,12})\\s*([${UNITS}])\\s*(.*)$`)
 
+/** 有些來源在標題前面加了流水號，例如「10.第10章常态」 */
+const LEADING_INDEX_RE = /^\d{1,4}\s*[.、,]\s*(?=第)/
+
+/**
+ * 標題被黏在前一段句尾的情況。
+ *
+ * 《全职高手》有 433 章長這樣 ——「“看比赛，开始了。”叶修平静第94章关键时候掉链子」，
+ * 原站每章結尾的換行在轉檔時掉了，標題就直接接在正文後面。行首錨點完全抓不到，
+ * 結果是連續幾十章合併成一章（實測有一章 9 萬字）。
+ *
+ * 只認兩位數以上的編號，且標題尾巴不含句讀，避免把正文裡「他翻到第三章」這種
+ * 敘述切開。真正的保險在後面：命中之後只是「候選」，要通過序列驗證才會真的剖行。
+ */
+const GLUED_RE = new RegExp(`^(.*[^\\s])(第\\s*(\\d{2,4})\\s*([${UNITS}])([^，。！？；]{0,24}))$`)
+
 /** 無編號的特殊章節。這類行必須短且不帶句讀，否則會誤收正文句子 */
 const SPECIAL_RE =
   /^(番外篇|番外|外傳|外传|楔子|序章|序幕|自序|引子|尾聲|尾声|終章|终章|後記|后记|完本感言|作者的話|作者的话)(\s*[:：、.。·\-—]?\s*(.*))?$/
@@ -77,6 +92,11 @@ interface Candidate {
   unit: string
   style: NumberStyle
   num: number
+  /**
+   * 大於 0 表示標題黏在這一行的尾巴，前面 splitAt 個字是上一段的內文。
+   * 只有通過序列驗證的候選才會真的把該行剖開，落選的原樣保留。
+   */
+  splitAt: number
 }
 
 interface SpecialCandidate {
@@ -172,26 +192,46 @@ export function splitChapters(lines: string[], junkLines: number): SplitResult {
   const specials: SpecialCandidate[] = []
 
   lines.forEach((line, index) => {
-    if (line.length > TITLE_MAX_LEN) return
+    const head = line.replace(LEADING_INDEX_RE, '')
 
-    const m = NUMBERED_RE.exec(line)
-    if (m) {
-      const raw = toHalfWidth(m[1]!)
-      const num = parseNumber(raw)
+    if (head.length <= TITLE_MAX_LEN) {
+      const m = NUMBERED_RE.exec(head)
+      if (m) {
+        const raw = toHalfWidth(m[1]!)
+        const num = parseNumber(raw)
+        if (Number.isFinite(num)) {
+          candidates.push({
+            line: index,
+            title: head,
+            unit: m[2]!,
+            style: /^\d+$/.test(raw) ? 'arabic' : 'chinese',
+            num,
+            splitAt: 0
+          })
+        }
+        return
+      }
+
+      if (head.length <= SPECIAL_MAX_LEN && !/[。，、；]/.test(head)) {
+        if (SPECIAL_RE.test(head)) specials.push({ line: index, title: head })
+        return
+      }
+    }
+
+    // 行首抓不到就看看標題是不是黏在句尾
+    const g = GLUED_RE.exec(line)
+    if (g) {
+      const num = parseNumber(g[3]!)
       if (Number.isFinite(num)) {
         candidates.push({
           line: index,
-          title: line,
-          unit: m[2]!,
-          style: /^\d+$/.test(raw) ? 'arabic' : 'chinese',
-          num
+          title: g[2]!,
+          unit: g[4]!,
+          style: 'arabic',
+          num,
+          splitAt: g[1]!.length
         })
       }
-      return
-    }
-
-    if (line.length <= SPECIAL_MAX_LEN && !/[。，、；]/.test(line)) {
-      if (SPECIAL_RE.test(line)) specials.push({ line: index, title: line })
     }
   })
 
@@ -244,32 +284,38 @@ export function splitChapters(lines: string[], junkLines: number): SplitResult {
   }
 
   // 兩套體例可能標到同一行，去重後依行號排序
-  const marks: Array<{ line: number; title: string }> = []
+  const marks: Array<{ line: number; title: string; splitAt: number }> = []
   const seen = new Set<number>()
   for (const c of winner.accepted) {
     if (seen.has(c.line)) continue
     seen.add(c.line)
-    marks.push({ line: c.line, title: c.title })
+    marks.push({ line: c.line, title: c.title, splitAt: c.splitAt })
   }
   for (const s of specials) {
     if (seen.has(s.line)) continue
     seen.add(s.line)
-    marks.push({ line: s.line, title: s.title })
+    marks.push({ line: s.line, title: s.title, splitAt: 0 })
   }
   marks.sort((a, b) => a.line - b.line)
+
+  /** 標題黏在行尾時，該行前半段屬於上一章，要補回去 */
+  const leadingPart = (mark: { line: number; splitAt: number }): string[] =>
+    mark.splitAt > 0 ? [lines[mark.line]!.slice(0, mark.splitAt)] : []
 
   const chapters: SplitChapter[] = []
 
   // 第一章之前的內容（書名、作者、簡介）自成一章，不能丟掉
-  const firstLine = marks[0]!.line
-  if (firstLine > 0) {
-    chapters.push({ title: '書籍資訊', paragraphs: lines.slice(0, firstLine) })
+  const first = marks[0]!
+  const preface = [...lines.slice(0, first.line), ...leadingPart(first)]
+  if (preface.length > 0) {
+    chapters.push({ title: '書籍資訊', paragraphs: preface })
   }
 
   for (let k = 0; k < marks.length; k++) {
-    const start = marks[k]!.line
-    const end = k + 1 < marks.length ? marks[k + 1]!.line : lines.length
-    const paragraphs = lines.slice(start + 1, end)
+    const next = marks[k + 1]
+    const end = next ? next.line : lines.length
+    const paragraphs = lines.slice(marks[k]!.line + 1, end)
+    if (next) paragraphs.push(...leadingPart(next))
     // 只有標題沒有內文的行是卷名分隔，或是兩套編號標到同一章時多出來的那個標題
     if (paragraphs.length === 0) continue
     chapters.push({ title: marks[k]!.title, paragraphs })
