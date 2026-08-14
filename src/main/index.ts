@@ -7,6 +7,7 @@ import { registerSettingsIpc } from './ipc/settingsIpc'
 import { registerProgressIpc } from './ipc/progressIpc'
 import { registerTtsIpc } from './ipc/ttsIpc'
 import { registerRefineIpc } from './ipc/refineIpc'
+import { registerExportIpc } from './ipc/exportIpc'
 import { setSpeaking, setupTray } from './tray'
 import { registerUpdateIpc } from './ipc/updateIpc'
 import { bindUpdaterWindow, checkForUpdates } from './updater'
@@ -138,6 +139,7 @@ void app.whenReady().then(async () => {
   registerProgressIpc()
   registerTtsIpc()
   registerRefineIpc()
+  registerExportIpc()
   registerUpdateIpc()
 
   const win = createWindow()

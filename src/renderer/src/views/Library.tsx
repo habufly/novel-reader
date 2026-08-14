@@ -27,10 +27,26 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
   const [pending, setPending] = useState<string[] | null>(null)
   const [lastImport, setLastImport] = useState<ImportResult[] | null>(null)
   const [refining, setRefining] = useState<Book | null>(null)
+  const [exported, setExported] = useState<string | null>(null)
+  const [exporting, setExporting] = useState<string | null>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
 
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  const exportBook = async (book: Book): Promise<void> => {
+    setExporting(book.id)
+    setExportError(null)
+    try {
+      const r = await window.api.export.book(book.id)
+      if (r) setExported(r.path)
+    } catch (e) {
+      setExported(null)
+      setExportError(e instanceof Error ? e.message : String(e))
+    }
+    setExporting(null)
+  }
 
   const pick = async (): Promise<void> => {
     const paths = await window.api.library.pickFiles()
@@ -52,6 +68,23 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
       </header>
 
       {error && <p className="library__error">讀取書櫃失敗：{error}</p>}
+
+      {exportError && <p className="library__error">匯出失敗：{exportError}</p>}
+
+      {exported && (
+        <div className="report">
+          <button className="report__close" onClick={() => setExported(null)} aria-label="關閉">
+            ×
+          </button>
+          <h3 className="report__title">匯出完成</h3>
+          <span className="report__line report__line--dim">{exported}</span>
+          <span className="report__line">
+            <button className="btn btn--ghost" onClick={() => void window.api.export.reveal(exported)}>
+              在檔案總管中顯示
+            </button>
+          </span>
+        </div>
+      )}
 
       {lastImport && lastImport.length > 0 && (
         <div className="report">
@@ -129,6 +162,14 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
                   onClick={() => setRefining(book)}
                 >
                   精校
+                </button>
+                <button
+                  className="btn btn--ghost"
+                  title="把整理好的內容存成 UTF-8 文字檔"
+                  disabled={exporting === book.id}
+                  onClick={() => void exportBook(book)}
+                >
+                  {exporting === book.id ? '匯出中…' : '匯出'}
                 </button>
                 <button
                   className="btn btn--ghost"

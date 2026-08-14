@@ -204,6 +204,12 @@ export interface RefineResult {
   remappedBookmarks: number
 }
 
+export interface ExportResult {
+  path: string
+  bytes: number
+  chapters: number
+}
+
 // ---------------------------------------------------------------- 更新
 
 export type UpdateStage =

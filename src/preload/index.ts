@@ -16,7 +16,8 @@ import type {
   AppPreferences,
   RefineCategory,
   RefineResult,
-  RefineScan
+  RefineScan,
+  ExportResult
 } from '@shared/types'
 
 /**
@@ -120,6 +121,13 @@ const api = {
     apply: (bookId: string, categories: RefineCategory[]): Promise<RefineResult> =>
       ipcRenderer.invoke('refine:apply', bookId, categories),
     revert: (bookId: string): Promise<boolean> => ipcRenderer.invoke('refine:revert', bookId)
+  },
+
+  export: {
+    /** 回傳 null 表示使用者取消了存檔對話框 */
+    book: (bookId: string): Promise<ExportResult | null> =>
+      ipcRenderer.invoke('export:book', bookId),
+    reveal: (path: string): Promise<void> => ipcRenderer.invoke('export:reveal', path)
   }
 }
 
