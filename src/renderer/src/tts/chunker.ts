@@ -70,6 +70,22 @@ export function chunkChapter(chapterId: number, body: string): TtsChunk[] {
   return chunks
 }
 
+/**
+ * 原站把 QQ 表情轉成的文字替身，例如「檸檬枝：“（微笑）”」。
+ *
+ * 這些括號是有意義的對白內容 —— 刪掉會讓那句話變成「檸檬枝：“”」，比留著更糟。
+ * 但朗讀時會被唸成「括號微笑括號」，很突兀。
+ *
+ * 解法是換成等長的空白：字數完全不變，所以段落位移、逐詞高亮、書籤全都不受影響，
+ * 而語音引擎遇到空白不會發出任何聲音。
+ */
+const EMOJI_PLACEHOLDER =
+  /[（(](?:笑哭|捂脸|捂臉|抠鼻|摳鼻|OK|ok|拳头|拳頭|警告|流汗|微笑|大哭|呲牙|吐舌|鼓掌|玫瑰|尬笑|白眼|流泪|流淚|偷笑|再见|再見|愉快|奸笑|发呆|發呆|哈欠|疑问|疑問|晕|暈|衰|抓狂|难过|難過|害羞|亲亲|親親|囧|嘘|噓)[a-zA-Z]*[）)]/g
+
+export function silenceEmojiPlaceholders(text: string): string {
+  return text.replace(EMOJI_PLACEHOLDER, (m) => ' '.repeat(m.length))
+}
+
 /** 找出涵蓋指定位移的段落索引，用來從閱讀位置接著唸 */
 export function chunkAt(chunks: TtsChunk[], charOffset: number): number {
   let at = 0

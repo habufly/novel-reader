@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { DEFAULT_TTS, type EdgeVoice, type TtsEngineId, type TtsSettings } from '@shared/types'
-import { chunkAt, chunkChapter, type TtsChunk } from '../tts/chunker'
+import { chunkAt, chunkChapter, silenceEmojiPlaceholders, type TtsChunk } from '../tts/chunker'
 import { loadLocalVoices, type TtsEngine } from '../tts/engine'
 import { LocalEngine } from '../tts/localEngine'
 import { EdgeEngine } from '../tts/edgeEngine'
@@ -233,7 +233,10 @@ async function runLoop(gen: number, set: Setter, get: () => TtsState): Promise<v
     let syncedAt = chunk.start
     let lastEl: HTMLElement | null = null
 
-    const outcome = await engine.speak(chunk.text, get().resumeAt, settings, {
+    // 表情替身換成等長空白：字數不變，位移與高亮完全不受影響
+    const spoken = settings.silenceEmoji ? silenceEmojiPlaceholders(chunk.text) : chunk.text
+
+    const outcome = await engine.speak(spoken, get().resumeAt, settings, {
       onWord: (charIndex, length) => {
         if (gen !== generation) return
         const absolute = chunk.start + charIndex

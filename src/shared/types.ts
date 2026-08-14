@@ -171,6 +171,39 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   pagePadding: 32
 }
 
+// ---------------------------------------------------------------- 精校
+
+export type RefineCategory = 'authorNote' | 'voteBeg' | 'siteAd' | 'marker'
+
+export interface RefineCategoryReport {
+  id: RefineCategory
+  label: string
+  /** 說明這一類會動到什麼，讓使用者判斷要不要勾 */
+  hint: string
+  count: number
+  /** 命中樣本，讓使用者當場看出規則有沒有誤判 */
+  samples: string[]
+  /** 整行刪除，或只移除行內的片段 */
+  mode: 'line' | 'inline'
+}
+
+export interface RefineScan {
+  bookId: string
+  categories: RefineCategoryReport[]
+  /** 已經精校過（存在原始備份） */
+  refined: boolean
+}
+
+export interface RefineResult {
+  /** 整行移除的段落數 */
+  removedLines: number
+  /** 行內移除的片段數 */
+  strippedFragments: number
+  removedChars: number
+  /** 閱讀位置與書籤是否有被重新對應 */
+  remappedBookmarks: number
+}
+
 // ---------------------------------------------------------------- 更新
 
 export type UpdateStage =
@@ -241,6 +274,8 @@ export interface TtsSettings {
   highlightWords: boolean
   /** 朗讀時自動捲動跟上 */
   autoScroll: boolean
+  /** 把「（微笑）」這類表情文字替身唸成靜音 */
+  silenceEmoji: boolean
 }
 
 export const DEFAULT_TTS: TtsSettings = {
@@ -251,7 +286,8 @@ export const DEFAULT_TTS: TtsSettings = {
   pitch: 1,
   volume: 1,
   highlightWords: true,
-  autoScroll: true
+  autoScroll: true,
+  silenceEmoji: true
 }
 
 export interface ReaderPreset {

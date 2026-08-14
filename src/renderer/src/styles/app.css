@@ -1461,3 +1461,98 @@ body {
   margin-top: 10px;
   flex-wrap: wrap;
 }
+
+/* ------------------------------------------------------------------ 精校 */
+
+.refine {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 18px;
+}
+
+.refine__list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.refine__item {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+}
+
+.refine__item.is-empty {
+  opacity: 0.5;
+}
+
+.refine__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.refine__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.refine__count {
+  font-size: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.refine__mode {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.refine__hint {
+  margin: 6px 0 0 24px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+/* 樣本要能看清楚，這是使用者判斷規則有沒有誤判的唯一依據 */
+.refine__samples {
+  list-style: none;
+  margin: 8px 0 0 24px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--border);
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--text);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.refine__samples li {
+  overflow-wrap: anywhere;
+}
+
+.refine__done {
+  padding: 12px 4px;
+}
+
+.refine__doneTitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.refine__done p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.7;
+}

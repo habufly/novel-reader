@@ -13,7 +13,10 @@ import type {
   SynthesisPayload,
   TtsSettings,
   UpdateStatus,
-  AppPreferences
+  AppPreferences,
+  RefineCategory,
+  RefineResult,
+  RefineScan
 } from '@shared/types'
 
 /**
@@ -110,6 +113,13 @@ const api = {
     get: (): Promise<AppPreferences> => ipcRenderer.invoke('prefs:get'),
     set: (patch: Partial<AppPreferences>): Promise<AppPreferences> =>
       ipcRenderer.invoke('prefs:set', patch)
+  },
+
+  refine: {
+    scan: (bookId: string): Promise<RefineScan> => ipcRenderer.invoke('refine:scan', bookId),
+    apply: (bookId: string, categories: RefineCategory[]): Promise<RefineResult> =>
+      ipcRenderer.invoke('refine:apply', bookId, categories),
+    revert: (bookId: string): Promise<boolean> => ipcRenderer.invoke('refine:revert', bookId)
   }
 }
 

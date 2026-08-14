@@ -189,6 +189,15 @@ export default function TtsBar(): React.JSX.Element | null {
             />
             自動捲動跟隨
           </label>
+
+          <label className="tts__check">
+            <input
+              type="checkbox"
+              checked={t.settings.silenceEmoji}
+              onChange={(e) => void t.patch({ silenceEmoji: e.target.checked })}
+            />
+            表情符號不朗讀
+          </label>
         </div>
       )}
 

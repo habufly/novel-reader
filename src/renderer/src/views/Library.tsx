@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Book, ImportResult } from '@shared/types'
 import { useLibrary } from '../stores/useLibrary'
 import ImportDialog from '../components/ImportDialog'
+import RefineDialog from '../components/RefineDialog'
 
 interface Props {
   onOpenBook: (book: Book) => void
@@ -25,6 +26,7 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
   const { books, loading, error, refresh, remove } = useLibrary()
   const [pending, setPending] = useState<string[] | null>(null)
   const [lastImport, setLastImport] = useState<ImportResult[] | null>(null)
+  const [refining, setRefining] = useState<Book | null>(null)
 
   useEffect(() => {
     void refresh()
@@ -123,6 +125,13 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
               <div className="book__actions">
                 <button
                   className="btn btn--ghost"
+                  title="清除作者留言、打賞感謝、站點廣告"
+                  onClick={() => setRefining(book)}
+                >
+                  精校
+                </button>
+                <button
+                  className="btn btn--ghost"
                   title={book.sourcePath}
                   onClick={() => void window.api.library.revealSource(book.sourcePath)}
                 >
@@ -138,6 +147,14 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
             </li>
           ))}
         </ul>
+      )}
+
+      {refining && (
+        <RefineDialog
+          book={refining}
+          onClose={() => setRefining(null)}
+          onApplied={() => void refresh()}
+        />
       )}
 
       {pending && (
