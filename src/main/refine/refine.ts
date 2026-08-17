@@ -10,7 +10,7 @@ import type {
 import { bookDir, contentFile, getBook, indexFile, readIndex, saveBook, writeIndex } from '../storage/library'
 import { loadProgress, saveProgress } from '../storage/progress'
 import { readJson, writeJson } from '../storage/jsonStore'
-import { RULES, decide } from './rules'
+import { RULES, cleanTitle, decide } from './rules'
 
 const SAMPLE_LIMIT = 5
 
@@ -41,10 +41,24 @@ export async function scanBook(id: string): Promise<RefineScan> {
   const counts = new Map<RefineCategory, number>()
   const samples = new Map<RefineCategory, string[]>()
 
+  // 標題不在 content.txt 裡，要另外掃 index.json
+  for (const c of chapters) {
+    const cleaned = cleanTitle(c.title)
+    if (cleaned === c.title) continue
+    counts.set('titleNote', (counts.get('titleNote') ?? 0) + 1)
+    const list = samples.get('titleNote') ?? []
+    if (list.length < SAMPLE_LIMIT) {
+      // 樣本顯示「改前 → 改後」，使用者才看得出標題本體有沒有被誤傷
+      list.push(`${c.title}  →  ${cleaned}`)
+      samples.set('titleNote', list)
+    }
+  }
+
   for (const body of bodies) {
     for (const line of body.split('\n')) {
       if (!line) continue
       for (const rule of RULES) {
+        if (rule.mode === 'title') continue
         const d = decide(line, new Set([rule.id]))
         if (!d.drop && !d.rewritten) continue
         counts.set(rule.id, (counts.get(rule.id) ?? 0) + 1)
@@ -135,7 +149,7 @@ function remapProgress(
 export async function refineBook(id: string, categories: RefineCategory[]): Promise<RefineResult> {
   const enabled = new Set(categories)
   if (enabled.size === 0) {
-    return { removedLines: 0, strippedFragments: 0, removedChars: 0, remappedBookmarks: 0 }
+    return { removedLines: 0, strippedFragments: 0, cleanedTitles: 0, removedChars: 0, remappedBookmarks: 0 }
   }
 
   const index = readIndex(id)
@@ -152,6 +166,7 @@ export async function refineBook(id: string, categories: RefineCategory[]): Prom
   let removedLines = 0
   let strippedFragments = 0
   let removedChars = 0
+  let cleanedTitles = 0
 
   bodies.forEach((body, chapterId) => {
     const lines = body.split('\n')
@@ -200,11 +215,17 @@ export async function refineBook(id: string, categories: RefineCategory[]): Prom
   let offset = 0
   let charCount = 0
 
+  const wantTitles = enabled.has('titleNote')
+
   newBodies.forEach((body, chapterId) => {
     const bytes = Buffer.byteLength(body, 'utf-8')
+    const original = index.chapters[chapterId]!.title
+    // 標題只存在 index.json，改它不影響任何字元位移
+    const title = wantTitles ? cleanTitle(original) : original
+    if (title !== original) cleanedTitles++
     metas.push({
       id: chapterId,
-      title: index.chapters[chapterId]!.title,
+      title,
       charCount: body.length,
       byteStart: offset,
       byteEnd: offset + bytes
@@ -229,7 +250,7 @@ export async function refineBook(id: string, categories: RefineCategory[]): Prom
   const book = getBook(id)
   if (book) saveBook({ ...book, charCount })
 
-  return { removedLines, strippedFragments, removedChars, remappedBookmarks }
+  return { removedLines, strippedFragments, cleanedTitles, removedChars, remappedBookmarks }
 }
 
 // ---------------------------------------------------------------- 還原

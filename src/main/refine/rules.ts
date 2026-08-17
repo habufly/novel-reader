@@ -10,11 +10,29 @@ import type { RefineCategory } from '@shared/types'
  * 不必擔心把「第326章 你別欺負我了（求月票）」這種標題誤刪。
  */
 
+/**
+ * 章節標題尾端（或中間）的拉票／打賞附註。
+ *
+ * 只清明確的宣傳文字，結構性註記一律保留 ——「（補一）」「（第三更）」
+ * 「（二合一8k）」是章節本身的資訊，「（比心）」是作者的表情。
+ * 全書櫃 9613 個標題裡有 933 個帶這類附註，佔了近一成，目錄會很吵。
+ *
+ * 標題不存在 content.txt 裡（只存在 index.json），所以改標題不會動到任何
+ * 字元位移 —— 這一類不需要位置重映射。
+ */
+export const TITLE_PROMO =
+  /[（(][^）)]{0,30}(求[^）)]{0,6}票|求订阅|求訂閱|求首订|求首訂|求收藏|求支持|求点击|求點擊|感谢|感謝|打赏|打賞|盟主|舵主|白银盟|白銀盟|上推了|月票|推荐票|推薦票)[^）)]{0,30}[）)]/g
+
+export function cleanTitle(title: string): string {
+  TITLE_PROMO.lastIndex = 0
+  return title.replace(TITLE_PROMO, '').replace(/\s{2,}/g, ' ').trim()
+}
+
 export interface RuleSpec {
   id: RefineCategory
   label: string
   hint: string
-  mode: 'line' | 'inline'
+  mode: 'line' | 'inline' | 'title'
   /** line 模式：整行符合就移除 */
   line?: RegExp
   /** line 模式的例外，符合就保留 */
@@ -53,6 +71,12 @@ export const RULES: RuleSpec[] = [
     mode: 'line',
     // 整行只有一個子句在講求票，才算數；夾在長段落裡的不碰
     line: /^[^。！？]{0,24}(求月票|求推荐票|求推薦票|求订阅|求訂閱|求打赏|求打賞|求收藏|投推荐票|投推薦票|求点击|求點擊)[^。！？]{0,24}[。！～~]?$/
+  },
+  {
+    id: 'titleNote',
+    label: '章節標題的拉票附註',
+    hint: '「（求月票）」「（感謝XX打賞的盟主）」這類掛在標題上的宣傳。只清宣傳文字，標題本體保留；「（補一）」「（第三更）」「（二合一8k）」這類章節資訊不動。',
+    mode: 'title'
   },
   {
     id: 'siteAd',

@@ -173,7 +173,7 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
 
 // ---------------------------------------------------------------- 精校
 
-export type RefineCategory = 'authorNote' | 'voteBeg' | 'siteAd' | 'marker'
+export type RefineCategory = 'authorNote' | 'voteBeg' | 'titleNote' | 'siteAd' | 'marker'
 
 export interface RefineCategoryReport {
   id: RefineCategory
@@ -183,8 +183,8 @@ export interface RefineCategoryReport {
   count: number
   /** 命中樣本，讓使用者當場看出規則有沒有誤判 */
   samples: string[]
-  /** 整行刪除，或只移除行內的片段 */
-  mode: 'line' | 'inline'
+  /** 整行刪除、只移除行內片段、或改寫章節標題 */
+  mode: 'line' | 'inline' | 'title'
 }
 
 export interface RefineScan {
@@ -199,6 +199,8 @@ export interface RefineResult {
   removedLines: number
   /** 行內移除的片段數 */
   strippedFragments: number
+  /** 被清掉附註的章節標題數 */
+  cleanedTitles: number
   removedChars: number
   /** 閱讀位置與書籤是否有被重新對應 */
   remappedBookmarks: number
