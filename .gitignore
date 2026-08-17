@@ -6,6 +6,9 @@ dist/
 # 測試用的小說原始檔：體積大且有版權，不入版控
 docs/*.txt
 
+# 編輯器與工具的本機設定
+.claude/
+
 *.log
 npm-debug.log*
 .env
