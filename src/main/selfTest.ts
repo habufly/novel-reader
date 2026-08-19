@@ -3,7 +3,8 @@ import { readdirSync, readFileSync, rmSync, writeFileSync, statSync } from 'node
 import { join, resolve } from 'node:path'
 import { importBook, readChapter } from './import/importBook'
 import { exportBookText } from './export/exportBook'
-import { readIndex, removeBook } from './storage/library'
+import { contentFile, readIndex, removeBook } from './storage/library'
+import { detectWatermarks } from './refine/watermark'
 
 /**
  * 匯入管線的煙霧測試。用真實小說檔跑完整流程，驗證編碼偵測、章節切分、
@@ -97,6 +98,29 @@ export async function runSelfTest(argPaths: string[], options: SelfTestOptions):
         `期望 ${meta.charCount} 實得 ${body.length}`
       )
       check(`第 ${id} 章無替換字元`, !body.includes('�'))
+    }
+
+    // --- 浮水印：偵測結果與移除量上限 ---
+    {
+      const buf = readFileSync(contentFile(book.id))
+      const bodies = index.chapters.map((c) =>
+        buf.subarray(c.byteStart, c.byteEnd).toString('utf-8')
+      )
+      const marks = detectWatermarks(bodies)
+      let hits = 0
+      for (const body of bodies) {
+        for (const line of body.split('\n')) {
+          if (line && marks.includes([...line].at(-1)!)) hits++
+        }
+      }
+      say(`  浮水印字: ${marks.length ? `${marks.join(' ')}（共 ${hits} 處）` : '無'}`)
+      // 跟偵測器內部門檻無關的獨立上限：就算判定邏輯哪天被改鬆了，
+      // 也不該有哪本書被削掉超過萬分之五的字。
+      check(
+        '浮水印移除量在安全範圍',
+        hits <= Math.max(50, book.charCount * 0.0005),
+        `移除 ${hits} 處 / 全書 ${book.charCount} 字`
+      )
     }
 
     say(`  首章: ${index.chapters[0]?.title}`)

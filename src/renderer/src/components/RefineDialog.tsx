@@ -79,6 +79,7 @@ export default function RefineDialog({ book, onClose, onApplied }: Props): React
               <p>
                 移除 {result.removedLines} 個段落
                 {result.strippedFragments > 0 && `、清掉 ${result.strippedFragments} 處行內廣告`}
+                {result.strippedWatermarks > 0 && `、清掉 ${result.strippedWatermarks} 處浮水印字`}
                 {result.cleanedTitles > 0 && `、整理 ${result.cleanedTitles} 個章節標題`}，
                 共 {result.removedChars.toLocaleString()} 字。
               </p>
@@ -110,7 +111,13 @@ export default function RefineDialog({ book, onClose, onApplied }: Props): React
                           {c.count === 0 ? '沒有命中' : `${c.count} 處`}
                         </span>
                         <span className="refine__mode">
-                          {c.mode === 'line' ? '整段移除' : c.mode === 'title' ? '只清標題附註' : '只移除行內片段'}
+                          {c.mode === 'line'
+                            ? '整段移除'
+                            : c.mode === 'title'
+                              ? '只清標題附註'
+                              : c.mode === 'char'
+                                ? '只拿掉行尾那個字'
+                                : '只移除行內片段'}
                         </span>
                       </label>
                       <p className="refine__hint">{c.hint}</p>

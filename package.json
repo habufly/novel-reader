@@ -1,6 +1,6 @@
 {
   "name": "novel-reader",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Windows 桌面小說閱讀器：自動書籤、章節目錄、夜間模式、字型調節、語音聽書",
   "main": "./out/main/index.js",
   "author": "habufly",

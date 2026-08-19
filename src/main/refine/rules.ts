@@ -1,4 +1,5 @@
 import type { RefineCategory } from '@shared/types'
+import { stripWatermark } from './watermark'
 
 /**
  * 精校規則。
@@ -32,7 +33,7 @@ export interface RuleSpec {
   id: RefineCategory
   label: string
   hint: string
-  mode: 'line' | 'inline' | 'title'
+  mode: 'line' | 'inline' | 'title' | 'char'
   /** line 模式：整行符合就移除 */
   line?: RegExp
   /** line 模式的例外，符合就保留 */
@@ -100,6 +101,12 @@ export const RULES: RuleSpec[] = [
     mode: 'line',
     // 整行都是符號才算，「---是夢嗎？」這種有正文的不碰
     line: /^([-—─=＝*＊※_~～]{3,}|[-—─=＝*＊※_]{2,}.{0,20}(内容|內容|正文|全文|章节|章節)(开始|開始|结束|結束).{0,20}[-—─=＝*＊※_]{2,})$/
+  },
+  {
+    id: 'watermark',
+    label: '盜版站浮水印字',
+    hint: '有些來源會在段落結尾插一個與內容無關的罕用字當追蹤標記，像「三花猫。阑」。字元清單是逐本統計出來的，只拿掉行尾那一個字，同一個字出現在句子中間時（例如「意兴阑珊」）不會被動到。',
+    mode: 'char'
   }
 ]
 
@@ -115,10 +122,28 @@ export interface LineDecision {
   category?: RefineCategory
 }
 
-/** 對單一行套用選定的規則，回傳該行的處置方式 */
-export function decide(line: string, enabled: Set<RefineCategory>): LineDecision {
+/**
+ * 對單一行套用選定的規則，回傳該行的處置方式。
+ *
+ * marks 是這本書偵測到的浮水印字。浮水印一定先剝 —— 其他規則有好幾條
+ * 用行尾錨點判斷（例如 authorNote 的 keep 用「】」收尾來認出正文裡的
+ * 系統框），行尾多掛一個「阑」會讓那些錨點對不上，保護就失效了。
+ */
+export function decide(
+  line: string,
+  enabled: Set<RefineCategory>,
+  marks: Set<string> = new Set()
+): LineDecision {
   let text = line
   let category: RefineCategory | undefined
+
+  if (enabled.has('watermark') && marks.size > 0) {
+    const stripped = stripWatermark(text, marks)
+    if (stripped !== text) {
+      text = stripped
+      category = 'watermark'
+    }
+  }
 
   for (const rule of RULES) {
     if (!enabled.has(rule.id)) continue
@@ -131,9 +156,9 @@ export function decide(line: string, enabled: Set<RefineCategory>): LineDecision
 
     if (rule.fragment) {
       rule.fragment.lastIndex = 0
-      const next = text.replace(rule.fragment, '')
-      if (next !== text) {
-        text = next
+      const nextText = text.replace(rule.fragment, '')
+      if (nextText !== text) {
+        text = nextText
         category = rule.id
       }
     }

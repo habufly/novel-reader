@@ -11,6 +11,7 @@ import { bookDir, contentFile, getBook, indexFile, readIndex, saveBook, writeInd
 import { loadProgress, saveProgress } from '../storage/progress'
 import { readJson, writeJson } from '../storage/jsonStore'
 import { RULES, cleanTitle, decide } from './rules'
+import { detectWatermarks, stripWatermark } from './watermark'
 
 const SAMPLE_LIMIT = 5
 
@@ -37,6 +38,8 @@ async function readChapters(id: string, chapters: ChapterMeta[]): Promise<string
 export async function scanBook(id: string): Promise<RefineScan> {
   const { chapters } = readIndex(id)
   const bodies = await readChapters(id, chapters)
+  // 浮水印字沒有固定清單，逐本統計出來
+  const marks = new Set(detectWatermarks(bodies))
 
   const counts = new Map<RefineCategory, number>()
   const samples = new Map<RefineCategory, string[]>()
@@ -59,12 +62,19 @@ export async function scanBook(id: string): Promise<RefineScan> {
       if (!line) continue
       for (const rule of RULES) {
         if (rule.mode === 'title') continue
-        const d = decide(line, new Set([rule.id]))
+        const d = decide(line, new Set([rule.id]), marks)
         if (!d.drop && !d.rewritten) continue
         counts.set(rule.id, (counts.get(rule.id) ?? 0) + 1)
         const list = samples.get(rule.id) ?? []
         if (list.length < SAMPLE_LIMIT) {
-          list.push(line.length > 70 ? `${line.slice(0, 70)}…` : line)
+          // 浮水印只差一個字，要並排才看得出來動到哪裡
+          list.push(
+            rule.mode === 'char' && d.rewritten !== undefined
+              ? `…${line.slice(-24)}  →  …${d.rewritten.slice(-23)}`
+              : line.length > 70
+                ? `${line.slice(0, 70)}…`
+                : line
+          )
           samples.set(rule.id, list)
         }
       }
@@ -149,11 +159,20 @@ function remapProgress(
 export async function refineBook(id: string, categories: RefineCategory[]): Promise<RefineResult> {
   const enabled = new Set(categories)
   if (enabled.size === 0) {
-    return { removedLines: 0, strippedFragments: 0, cleanedTitles: 0, removedChars: 0, remappedBookmarks: 0 }
+    return {
+      removedLines: 0,
+      strippedFragments: 0,
+      strippedWatermarks: 0,
+      cleanedTitles: 0,
+      removedChars: 0,
+      remappedBookmarks: 0
+    }
   }
 
   const index = readIndex(id)
   const bodies = await readChapters(id, index.chapters)
+  // 必須在任何改寫之前偵測，才會跟掃描時看到的是同一份輸入
+  const marks = new Set(detectWatermarks(bodies))
 
   // 第一次精校前先備份，之後才有得還原
   if (!existsSync(originalContent(id))) {
@@ -165,6 +184,7 @@ export async function refineBook(id: string, categories: RefineCategory[]): Prom
   const newBodies: string[] = []
   let removedLines = 0
   let strippedFragments = 0
+  let strippedWatermarks = 0
   let removedChars = 0
   let cleanedTitles = 0
 
@@ -180,7 +200,10 @@ export async function refineBook(id: string, categories: RefineCategory[]): Prom
       // 每行在內文裡佔 line.length 個字，後面接一個換行
       oldPos += line.length + 1
 
-      const d = decide(line, enabled)
+      // 分開統計：浮水印跟站點廣告都是行內改寫，混在一起報告會看不懂
+      const hadMark = enabled.has('watermark') && marks.size > 0 && stripWatermark(line, marks) !== line
+      if (hadMark) strippedWatermarks++
+      const d = decide(line, enabled, marks)
 
       if (d.drop) {
         // 整章都符合規則時至少留最後一行，不要產生空章
@@ -196,7 +219,7 @@ export async function refineBook(id: string, categories: RefineCategory[]): Prom
       if (d.rewritten !== undefined) {
         // 片段位置逐一追蹤成本高，記在行尾即可 —— 誤差不超過該行本身
         list.push({ start: start + d.rewritten.length, length: line.length - d.rewritten.length })
-        strippedFragments++
+        if (!hadMark || d.rewritten !== stripWatermark(line, marks)) strippedFragments++
         removedChars += line.length - d.rewritten.length
         kept.push(d.rewritten)
         continue
@@ -250,7 +273,14 @@ export async function refineBook(id: string, categories: RefineCategory[]): Prom
   const book = getBook(id)
   if (book) saveBook({ ...book, charCount })
 
-  return { removedLines, strippedFragments, cleanedTitles, removedChars, remappedBookmarks }
+  return {
+    removedLines,
+    strippedFragments,
+    strippedWatermarks,
+    cleanedTitles,
+    removedChars,
+    remappedBookmarks
+  }
 }
 
 // ---------------------------------------------------------------- 還原
