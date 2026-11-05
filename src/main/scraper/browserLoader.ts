@@ -75,8 +75,11 @@ export class BrowserPageLoader {
         const isCatalog = kind === 'catalog'
         const inspect = `(() => {
           const title = document.querySelector(${JSON.stringify(isCatalog ? profile.bookTitle : profile.chapterTitle)});
-          const body = document.querySelector(${JSON.stringify(isCatalog ? profile.chapterLinks : profile.chapterBody)});
-          const ready = !!title && !!body && ${isCatalog ? 'true' : `(body.textContent || '').trim().length >= ${profile.minBodyLength ?? 100}`};
+          const bodies = document.querySelectorAll(${JSON.stringify(isCatalog ? profile.chapterLinks : profile.chapterBody)});
+          const body = bodies[0];
+          // DOM readiness is separate from text-length validation. A fully loaded
+          // short announcement must not be mistaken for a verification page.
+          const ready = document.readyState !== 'loading' && !!title?.textContent?.trim() && ${isCatalog ? 'bodies.length > 0' : "bodies.length === 1 && !!body?.textContent?.trim()"};
           return { ready, href: location.href, title: document.title, html: ready ? document.documentElement.outerHTML : '' };
         })()`
         const started = Date.now()

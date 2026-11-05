@@ -11,6 +11,8 @@ void app.whenReady().then(async () => {
   const server = createServer((req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     if (req.url === '/wait') { res.end('<title>Just a moment...</title>'); return }
+    if (req.url === '/short') { res.end('<h1>1064.請假</h1><main id="body">請假</main>'); return }
+    if (req.url === '/empty') { res.end('<h1>1064.請假</h1><main id="body"> </main>'); return }
     if (req.url === '/redirect') { res.writeHead(302, { Location: 'https://not-allowed.invalid/' }); res.end(); return }
     if (req.url === '/book') { res.setHeader('Set-Cookie', 'testcookie=present; Path=/'); res.end('<h1>測試書</h1><a class="chapter" href="/chapter">第1章 測試</a>'); return }
     const n = String(Date.now())
@@ -27,13 +29,16 @@ void app.whenReady().then(async () => {
     assert.match(second, /testcookie=present/, '同一網站瀏覽器應保留自己的 Cookie')
     assert.match(parseChapter(second, profile).body, /require=undefined/, '遠端網頁不得存取 Node.js')
     assert.match(second, /https:\/\/example.com/, '正文網址應保留')
+    const short = await loader.load(`${base}/short`, { profile, kind: 'chapter' })
+    assert.equal(parseChapter(short, { ...profile, minBodyLength: 1 }).body, '請假', '短公告不得卡在瀏覽器等待')
+    await assert.rejects(loader.load(`${base}/empty`, { profile, kind: 'chapter' }), /尚未提供可讀取/)
     const controller = new AbortController()
     const pending = loader.load(`${base}/wait`, { profile, kind: 'chapter', signal: controller.signal })
     setTimeout(() => controller.abort(), 80)
     await assert.rejects(pending)
     await assert.rejects(loader.load(`${base}/wait`, { profile, kind: 'chapter' }), /尚未提供可讀取/)
     await assert.rejects(loader.load('https://not-allowed.invalid/', { profile, kind: 'chapter' }), /不符合/)
-    console.log('PASS: isolated browser cookies, no Node access, fresh DOM, cancellation, and challenge rejection')
+    console.log('PASS: isolated browser cookies, no Node access, fresh DOM, short announcements, cancellation, empty-body and challenge rejection')
 
     if (process.argv.includes('--live')) {
       const live = new BrowserPageLoader({ partition: 'scraper-czbooks-live-test', timeoutMs: 90000 })
@@ -44,6 +49,13 @@ void app.whenReady().then(async () => {
         const catalog = parseCatalog(html, catalogUrl, p)
         const chapter = parseChapter(await live.load(catalog.chapters[0]!.url, { profile: p, kind: 'chapter' }), p)
         console.log(JSON.stringify({ live: 'PASS', title: catalog.title, total: catalog.chapters.length, firstTitle: chapter.title, bodyCharacters: chapter.body.length }))
+        if (process.argv.includes('--live-announcement')) {
+          const url = 'https://czbooks.net/n/s6p7h2/s664ij85?chapterNumber=1063'
+          const announcement = parseChapter(await live.load(url, { profile: p, kind: 'chapter' }), p)
+          assert.equal(announcement.title, '1064.請假')
+          assert.ok(announcement.body.length > 0 && announcement.body.length < 100)
+          console.log(JSON.stringify({ shortAnnouncement: 'PASS', title: announcement.title, bodyCharacters: announcement.body.length }))
+        }
         const dataArgument = process.argv.find(a => a.startsWith('--job-data='))
         if (dataArgument) {
           const engine = new ScraperEngine(dataArgument.slice('--job-data='.length), { browserLoader: (url, context) => live.load(url, context) })
