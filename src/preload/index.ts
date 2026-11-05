@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { CrawlOptions, CrawlPreview, CrawlStatus, SiteProfile } from 'novel-scraper-core'
 import type {
   AppInfo,
   Book,
@@ -25,6 +26,27 @@ import type {
  * 不把 ipcRenderer 整個丟出去 —— 否則 contextIsolation 等於白開。
  */
 const api = {
+  scraper: {
+    profiles: (): Promise<SiteProfile[]> => ipcRenderer.invoke('scraper:profiles'),
+    saveProfile: (profile: SiteProfile): Promise<SiteProfile> => ipcRenderer.invoke('scraper:saveProfile', profile),
+    jobs: (): Promise<CrawlStatus[]> => ipcRenderer.invoke('scraper:jobs'),
+    preview: (options: CrawlOptions): Promise<CrawlPreview> => ipcRenderer.invoke('scraper:preview', options),
+    start: (options: CrawlOptions): Promise<void> => ipcRenderer.invoke('scraper:start', options),
+    pause: (): Promise<void> => ipcRenderer.invoke('scraper:pause'),
+    recover: (id: string): Promise<void> => ipcRenderer.invoke('scraper:recover', id),
+    import: (id: string, version: 'raw' | 'cleaned'): Promise<ImportResult> => ipcRenderer.invoke('scraper:import', id, version),
+    reveal: (id: string, version: 'raw' | 'cleaned'): Promise<void> => ipcRenderer.invoke('scraper:reveal', id, version),
+    onProgress: (fn: (state: CrawlStatus) => void): (() => void) => {
+      const handler = (_e: unknown, state: CrawlStatus): void => fn(state)
+      ipcRenderer.on('scraper:progress', handler)
+      return () => ipcRenderer.off('scraper:progress', handler)
+    },
+    onError: (fn: (error: string) => void): (() => void) => {
+      const handler = (_e: unknown, error: string): void => fn(error)
+      ipcRenderer.on('scraper:error', handler)
+      return () => ipcRenderer.off('scraper:error', handler)
+    }
+  },
   getAppInfo: (): Promise<AppInfo> => ipcRenderer.invoke('app:info'),
 
   library: {

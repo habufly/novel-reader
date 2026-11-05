@@ -19,6 +19,10 @@ files:
   # 小說樣本與精校輸出。這是排除清單不是白名單，不寫就會被打包進去 ——
   # v1.3.0 的安裝檔因此多了 20MB。
   - '!docs'
+  - '!vendor'
+  - '!dist'
+  - '!scripts'
+  - '!.claude'
 
 asarUnpack:
   - resources/**

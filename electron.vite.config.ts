@@ -5,7 +5,7 @@ import pkg from './package.json'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    plugins: [externalizeDepsPlugin({ exclude: ['novel-scraper-core'] })],
     // app.getVersion() 在未打包時解析不到套件目錄，會回傳 Electron 自己的版本，
     // 所以改成編譯期內嵌，開發與正式版顯示的都是同一個號碼
     define: { __APP_VERSION__: JSON.stringify(pkg.version) },

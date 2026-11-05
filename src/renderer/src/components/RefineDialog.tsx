@@ -19,8 +19,8 @@ export default function RefineDialog({ book, onClose, onApplied }: Props): React
       .scan(book.id)
       .then((s) => {
         setScan(s)
-        // 有命中的類別預設勾選，沒命中的不用管
-        setPicked(new Set(s.categories.filter((c) => c.count > 0).map((c) => c.id)))
+        // Matches are suggestions, not consent to delete prose.
+        setPicked(new Set())
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
   }, [book.id])
@@ -92,8 +92,8 @@ export default function RefineDialog({ book, onClose, onApplied }: Props): React
             scan && (
               <>
                 <p className="set__note">
-                  精校只動內文，不會修改你的原始 TXT 檔。套用前請看一眼各類別的樣本，
-                  規則若有誤判會當場看出來。
+                  以下皆為可能誤判的清理建議，預設不套用。整段移除與浮水印推測可能影響正文，
+                  樣本不代表全部命中內容；請確定後再選擇。原始 TXT 不會被修改。
                 </p>
 
                 <ul className="refine__list">

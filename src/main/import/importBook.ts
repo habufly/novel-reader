@@ -75,6 +75,8 @@ export async function importBook(
   report('writing', 75)
   const id = newBookId()
   await mkdir(bookDir(id), { recursive: true })
+  // Preserve the exact bytes before decoding and chapter segmentation.
+  await writeFile(`${bookDir(id)}/source-original.txt`, raw)
 
   // 全書寫成單一正規化檔，索引記位元組範圍。
   // 比一章一個檔好：少了近千個小檔案，讀單章時直接 seek 該範圍即可。

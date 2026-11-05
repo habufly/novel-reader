@@ -3,6 +3,7 @@ import type { Book, ImportResult } from '@shared/types'
 import { useLibrary } from '../stores/useLibrary'
 import ImportDialog from '../components/ImportDialog'
 import RefineDialog from '../components/RefineDialog'
+import DownloadDialog from '../components/DownloadDialog'
 
 interface Props {
   onOpenBook: (book: Book) => void
@@ -27,6 +28,7 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
   const [pending, setPending] = useState<string[] | null>(null)
   const [lastImport, setLastImport] = useState<ImportResult[] | null>(null)
   const [refining, setRefining] = useState<Book | null>(null)
+  const [downloading, setDownloading] = useState(false)
   const [exported, setExported] = useState<string | null>(null)
   const [exporting, setExporting] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -65,6 +67,7 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
         <button className="btn btn--primary" onClick={() => void pick()}>
           匯入小說
         </button>
+        <button className="btn" onClick={() => setDownloading(true)}>網址下載</button>
       </header>
 
       {error && <p className="library__error">讀取書櫃失敗：{error}</p>}
@@ -198,6 +201,7 @@ export default function Library({ onOpenBook, onOpenSettings }: Props): React.JS
         />
       )}
 
+      {downloading && <DownloadDialog onClose={() => setDownloading(false)} onImported={() => void refresh()} />}
       {pending && (
         <ImportDialog
           paths={pending}

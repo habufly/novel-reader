@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, rmSync, writeFileSync, statSync } from 'node
 import { join, resolve } from 'node:path'
 import { importBook, readChapter } from './import/importBook'
 import { exportBookText } from './export/exportBook'
-import { contentFile, readIndex, removeBook } from './storage/library'
+import { bookDir, contentFile, readIndex, removeBook } from './storage/library'
 import { detectWatermarks } from './refine/watermark'
 
 /**
@@ -70,6 +70,8 @@ export async function runSelfTest(argPaths: string[], options: SelfTestOptions):
     }
 
     check('索引章數與書籍記錄一致', index.chapters.length === book.chapterCount)
+    check('匯入保留原始檔位元組備份',
+      readFileSync(join(bookDir(book.id), 'source-original.txt')).equals(readFileSync(path)))
     check('沒有空章', index.chapters.every((c) => c.charCount > 0),
       `最小 ${Math.min(...index.chapters.map((c) => c.charCount))} 字`)
     check('位元組範圍遞增且不重疊',

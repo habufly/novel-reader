@@ -1556,3 +1556,19 @@ body {
   font-size: 13px;
   line-height: 1.7;
 }
+
+.download { width: min(1080px, 94vw); max-height: 92vh; }
+.download__body { padding: 18px 22px; overflow-y: auto; min-height: 0; }
+.download__fields { border: 0; padding: 0; margin: 0; display: grid; gap: 14px; min-width: 0; }
+.download label { display: grid; gap: 6px; flex: 1; min-width: 0; font-size: 13px; }
+.download input, .download select, .download textarea { width: 100%; box-sizing: border-box; padding: 9px; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+.download textarea { resize: vertical; }
+.download__row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.download__section { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 20px; }
+.download h3 { margin: 0 0 12px; font-size: 15px; }
+.download h4 { margin: 8px 0; font-size: 13px; }
+.download__preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.download__preview pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; padding: 12px; background: var(--bg); font: inherit; font-size: 13px; line-height: 1.8; }
+.download__job { padding: 14px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.download__job p { margin: 6px 0; font-size: 13px; }
+.download__job progress { width: 100%; margin-bottom: 10px; accent-color: var(--accent); }
